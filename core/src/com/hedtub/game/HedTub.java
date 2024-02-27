@@ -163,9 +163,9 @@ public class HedTub extends Game {
 		playerrw.framereg = (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) ? 0.1f : 0.2f);
 
 		if (movedir==1) {
-			playertext = new TextureRegion(new Texture("playerr.png"));
-		} else if (movedir==-1) {
 			playertext = new TextureRegion(new Texture("playerl.png"));
+		} else if (movedir==-1) {
+			playertext = new TextureRegion(new Texture("playerr.png"));
 		}
 
 		/*
@@ -254,7 +254,7 @@ public class HedTub extends Game {
 					movevect.x += movex;
 					movevect.y += movey;
 				} else {
-					movevect.x = -movedir * 4;
+					movevect.x = -movedir * 4.5f;
 					movevect.y += 3;
 				}
 				movevect.y = Math.min(movevect.y,5);

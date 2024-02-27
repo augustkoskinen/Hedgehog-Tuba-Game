@@ -15,6 +15,7 @@ public class Overworld implements Screen {
     private HedTub game;
     private FrameworkMO.SpriteObjectSqr player;
     private SpriteBatch batch;
+    private ArrayList<FrameworkMO.TextureSet> mapTextures = new ArrayList<>();
     public Overworld (HedTub game) {
         this.game = game;
         player = game.player;
@@ -26,12 +27,23 @@ public class Overworld implements Screen {
         cam.setToOrtho(false, 192, 132);
         cam.position.set(new Vector3(player.x, player.y, 0));
 
+
+        TextureRegion maptext;
+        for(int i = 0; i<game.WORLD_MAP.length;i++) {
+            for (int j = 0; j < game.WORLD_MAP[i].length; j++) {
+                maptext = FrameworkMO.getSpriteTilemap(game.WORLD_MAP, i, j, game.WORLD_MAP.length, game.WORLD_MAP[i].length);
+                if (maptext != null) {
+                    mapTextures.add(new FrameworkMO.TextureSet(maptext, i * 32, j * 32, j * 32));
+                }
+            }
+        }
     }
 
     @Override
     public void render(float delta) {
+
         //clears screen
-        ScreenUtils.clear(0.415f, 0.764f, 0.851f, 1);
+        ScreenUtils.clear(0.415f, 0.764f, 0.851f, 1, true);
         TextureRegion playertext = game.updatePlayerPos();
 
         //updates cam position/visuals
@@ -41,6 +53,7 @@ public class Overworld implements Screen {
         cam.position.set(cam.position.x + campos.x * .05f, cam.position.y + campos.y * .05f, 0);
         cam.update();
         batch.setProjectionMatrix(cam.combined);
+
 
         //draws sprites
         ArrayList<FrameworkMO.TextureSet> textures = new ArrayList<>();
@@ -54,27 +67,20 @@ public class Overworld implements Screen {
         }
         textures.add(new FrameworkMO.TextureSet(playertext,player.x, player.y, player.depth,(float) Math.toRadians(game.moverot)));
 
-        TextureRegion maptext;
-        for(int i = 0; i<game.WORLD_MAP.length;i++){
-            for(int j = 0; j<game.WORLD_MAP[i].length;j++) {
-                maptext = FrameworkMO.getSpriteTilemap(game.WORLD_MAP,i,j,game.WORLD_MAP.length,game.WORLD_MAP[i].length);
-                if(maptext!=null)
-                    textures.add(new FrameworkMO.TextureSet(maptext, i * 32,j*32,j*32));
-            }
-        }
+        textures.addAll(mapTextures);
 
         for(int i = 0; i<game.PoofCloudList.size();i++) {
             FrameworkMO.TextureSet text = game.PoofCloudList.get(i).updateTime();
-            if(text!=null)
+            if(text!=null) {
                 textures.add(text);
-            else
+            } else
                 i--;
         }
         for(int i = 0; i<game.BulletList.size();i++) {
             FrameworkMO.TextureSet text = game.BulletList.get(i).updateTime();
-            if(text!=null)
+            if(text!=null) {
                 textures.add(text);
-            else
+            } else
                 i--;
         }
 
