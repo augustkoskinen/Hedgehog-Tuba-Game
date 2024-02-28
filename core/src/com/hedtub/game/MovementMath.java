@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.controllers.*;
 import com.badlogic.gdx.utils.ScreenUtils;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 import static com.badlogic.gdx.math.MathUtils.clamp;
@@ -50,8 +51,8 @@ public class MovementMath extends ApplicationAdapter {
         return new Vector3((pointa.x+pointb.x)/2,(pointa.y+pointb.y)/2,0);
     }
 
-    static public int CheckCollisions(Rectangle colbox, Array<Rectangle> collist){
-        for(int i = 0; i< collist.size;i++){
+    static public int CheckCollisions(Rectangle colbox, ArrayList<Rectangle> collist){
+        for(int i = 0; i< collist.size();i++){
             if(colbox!=collist.get(i)&&overlaps(colbox,collist.get(i))) {
                 return i;
             }
@@ -78,30 +79,62 @@ public class MovementMath extends ApplicationAdapter {
     static public Rectangle DuplicateRect(Rectangle rect){
         return new Rectangle(rect.x,rect.y,rect.width,rect.height);
     }
-    static public int toDegrees() {
-        if(Gdx.input.isKeyPressed(Input.Keys.W)&&Gdx.input.isKeyPressed(Input.Keys.D)){
-            return 315;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.A)&&Gdx.input.isKeyPressed(Input.Keys.W)){
-            return 45;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.S)&&Gdx.input.isKeyPressed(Input.Keys.A)){
-            return 135;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.D)&&Gdx.input.isKeyPressed(Input.Keys.S)){
-            return 225;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.W)){
-            return 0;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.A)){
-            return 90;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.S)){
-            return 180;
-        }
-        if(Gdx.input.isKeyPressed(Input.Keys.D)){
-            return 270;
+    static public int toDegrees(Controller controller) {
+        if(controller.equals(null)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.W) && Gdx.input.isKeyPressed(Input.Keys.D)) {
+                return 315;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.A) && Gdx.input.isKeyPressed(Input.Keys.W)) {
+                return 45;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.S) && Gdx.input.isKeyPressed(Input.Keys.A)) {
+                return 135;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.D) && Gdx.input.isKeyPressed(Input.Keys.S)) {
+                return 225;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+                return 0;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+                return 90;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+                return 180;
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+                return 270;
+            }
+        } else {
+            boolean rightmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > 0.15);
+            boolean leftmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -0.15);
+            boolean upmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d < -0.15);
+            boolean downmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d > 0.15);
+
+            if (upmove && rightmove) {
+                return 315;
+            }
+            if (leftmove && upmove) {
+                return 45;
+            }
+            if (downmove && leftmove) {
+                return 135;
+            }
+            if (rightmove && downmove) {
+                return 225;
+            }
+            if (upmove) {
+                return 0;
+            }
+            if (leftmove) {
+                return 90;
+            }
+            if (downmove) {
+                return 180;
+            }
+            if (rightmove) {
+                return 270;
+            }
         }
         return -1;
     }
