@@ -66,11 +66,11 @@ public class MovementMath extends ApplicationAdapter {
 
          return false;
     }
-    static public boolean CheckCollisions(int[][] map, Rectangle player, int extendamount, Vector3 offset){
-        if (map[clamp((int) ((player.x+offset.x) / 32) + extendamount/2,0,map.length-1)][clamp((int) ((player.y+offset.y) / 32) + extendamount/2,0,map[0].length-1)] != 0||
-            map[clamp((int) ((player.x+offset.x) / 32) + extendamount/2,0,map.length-1)][clamp((int) ((player.y+offset.y+16) / 32) + extendamount/2,0,map[0].length-1)] != 0||
-            map[clamp((int) ((player.x+offset.x+16) / 32) + extendamount/2,0,map.length-1)][clamp((int) ((player.y+offset.y+16) / 32) + extendamount/2,0,map[0].length-1)] != 0||
-            map[clamp((int) ((player.x+offset.x+16) / 32) + extendamount/2,0,map.length-1)][clamp((int) ((player.y+offset.y) / 32) + extendamount/2,0,map[0].length-1)] != 0) {
+    static public boolean CheckCollisions(int[][] map, Rectangle col, int extendamount, Vector3 offset, Vector3 bounds){
+        if (map[clamp((int) ((col.x+offset.x+(16-bounds.x)) / 16) + extendamount/2,0,map.length-1)][clamp((int) ((col.y+offset.y+(16-bounds.y)) / 16) + extendamount/2,0,map[0].length-1)] == 1||
+            map[clamp((int) ((col.x+offset.x+(16-bounds.x)) / 16) + extendamount/2,0,map.length-1)][clamp((int) ((col.y+offset.y+bounds.y) / 16) + extendamount/2,0,map[0].length-1)] == 1||
+            map[clamp((int) ((col.x+offset.x+bounds.x) / 16) + extendamount/2,0,map.length-1)][clamp((int) ((col.y+offset.y+bounds.y) / 16) + extendamount/2,0,map[0].length-1)] == 1||
+            map[clamp((int) ((col.x+offset.x+bounds.x) / 16) + extendamount/2,0,map.length-1)][clamp((int) ((col.y+offset.y+(16-bounds.y)) / 16) + extendamount/2,0,map[0].length-1)] == 1) {
             return true;
         }
 
@@ -80,7 +80,7 @@ public class MovementMath extends ApplicationAdapter {
         return new Rectangle(rect.x,rect.y,rect.width,rect.height);
     }
     static public int toDegrees(Controller controller) {
-        if(controller.equals(null)) {
+        if(controller == null) {
             if (Gdx.input.isKeyPressed(Input.Keys.W) && Gdx.input.isKeyPressed(Input.Keys.D)) {
                 return 315;
             }
@@ -106,10 +106,10 @@ public class MovementMath extends ApplicationAdapter {
                 return 270;
             }
         } else {
-            boolean rightmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > 0.15);
-            boolean leftmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -0.15);
-            boolean upmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d < -0.15);
-            boolean downmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d > 0.15);
+            boolean rightmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .25);
+            boolean leftmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25);
+            boolean upmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d < -.25);
+            boolean downmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d > .25);
 
             if (upmove && rightmove) {
                 return 315;
