@@ -9,7 +9,6 @@ import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.Controllers;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import java.util.ArrayList;
 
 import com.badlogic.gdx.math.Vector3;
@@ -26,7 +25,7 @@ public class HedTub extends Game {
 	public String launcher;
 
 	//player
-	public int numplayers = 0;
+	public static int numplayers = 0;
 	public static Player mainplayer;
 	public static final float GRAVITY = 0.2f;
 	public static final float RUN_SPEED = 3;
@@ -40,6 +39,7 @@ public class HedTub extends Game {
 	public static ArrayList<Bullet> BulletList;
 	public static ArrayList<HedTub.Monster> MonsterList = new ArrayList<>();
 	public static ArrayList<HedTub.Player> PlayerList = new ArrayList<>();
+	public static ArrayList<HedTub.Player> DeletedPlayerList = new ArrayList<>();
 	public static ArrayList<Controller> ControllerList = new ArrayList<>();
 	public static boolean keyboardtaken = false;
 	public boolean pause = false;
@@ -113,11 +113,13 @@ public class HedTub extends Game {
 		private Vector3 pos = new Vector3();
 		private Texture text;
 		public Rectangle collision;
+		public Player homeplayer = null;
 
-		public Bullet(float dir, Vector3 pos){
-			text = new Texture("bullet.png");
+		public Bullet(float dir, Vector3 pos,String path, Player homeplayer){
+			text = new Texture(path);
 			this.pos = pos;
 			this.dir = dir;
+			this.homeplayer = homeplayer;
 
 			collision = new Rectangle(pos.x,pos.y,6,2);
 		}
@@ -128,6 +130,14 @@ public class HedTub extends Game {
 			collision.y+=addvect.y*SLOWSPEED;
 
 			time+=Gdx.graphics.getDeltaTime()*SLOWSPEED;
+
+			for(int i = 0; i<PlayerList.size();i++) {
+				if (PlayerList.get(i) != homeplayer && MovementMath.overlaps(collision, PlayerList.get(i).sprite.collision)) {
+					PlayerList.get(i).takeDamage();
+					Remove();
+					return null;
+				}
+			}
 
 			if(time>=life||MovementMath.CheckCollisions(WORLD_MAP,collision,0,new Vector3(0,0,0),new Vector3(8,2,0))) {
 				Remove();
@@ -221,6 +231,8 @@ public class HedTub extends Game {
 	}
 
 	public static class Player {
+		public int health = 8;
+		public FrameworkMO.AnimationSet healthwheel;
 		public FrameworkMO.SpriteObjectSqr sprite;
 		public FrameworkMO.AnimationSet animrw;
 		public FrameworkMO.AnimationSet animlw;
@@ -233,11 +245,18 @@ public class HedTub extends Game {
 		public double moverot = 0;
 		public int jumpdiradd = 0;
 		public int controltype;
+		public int skintype = 1;
 		public Controller controller;
-		private boolean firebutton = false;
-		private boolean jumpbutton = false;
-		private boolean firebuttonrelease = false;
-		private boolean jumpbuttonrelease = false;
+		public boolean chosechar = false;
+		public boolean firebutton = false;
+		public boolean jumpbutton = false;
+		public boolean firebuttonrelease = false;
+		public boolean jumpbuttonrelease = false;
+		public boolean pressright = false;
+		public boolean pressleft = false;
+		public boolean releaseright = false;
+		public boolean releaseleft = false;
+		public float deadcount = 0;
 
 		public Player(Vector3 pos, int type) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
@@ -251,12 +270,13 @@ public class HedTub extends Game {
 				controller = Controllers.getControllers().get(0);
 			}
 		}
-		public Player(Vector3 pos, int type, Controller controller) {
+		public Player(Vector3 pos, int type, Controller controller,int skintype) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			controltype = type;
+			this.skintype = skintype;
 
 			if(Controllers.getControllers().size==0) controltype = 0;
 			if(controltype==1) {
@@ -271,7 +291,7 @@ public class HedTub extends Game {
 			Rectangle playercol = MovementMath.DuplicateRect(sprite.collision);
 
 			SLOWSPEED = 1;
-			if ((controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
+			if (numplayers==1&&(controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
 				SLOWSPEED = 0.25f;
 			}
 
@@ -285,20 +305,13 @@ public class HedTub extends Game {
 			animlw.framereg = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
 			animrw.framereg = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
 
-			if (movedir==1) {
-				playertext = new TextureRegion(new Texture("body.png"));
-			} else if (movedir==-1) {
-				playertext = new TextureRegion(new Texture("body.png"));
-			}
+			playertext = new TextureRegion(new Texture("p"+skintype+"body.png"));
 
 			if (movevect.y < 10) movevect.y -= GRAVITY*SLOWSPEED;
 
 			boolean grounded = MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(0,-1,0),new Vector3(15,15,0));
 			boolean wallsliding = ((MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(1,0,0),new Vector3(15,15,0))&&rightmove==1)||(MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(-1,0,0),new Vector3(15,15,0))&&leftmove==1));
 			if(grounded) jumpcount = 5;
-
-			if(controltype==1&&jumpbuttonrelease&&controller.getButton(controller.getMapping().buttonB)&&!jumpbutton) jumpbutton = true;
-			if(controltype==1&&!controller.getButton(controller.getMapping().buttonB)) jumpbuttonrelease = true; else jumpbuttonrelease = false;
 
 			if ((controltype==0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&&jumpcount>0) {
 				int degree = MovementMath.toDegrees(controller);
@@ -380,11 +393,8 @@ public class HedTub extends Game {
 
 			if(MovementMath.toDegrees(controller)!=-1) lastdir = MovementMath.toDegrees(controller);
 
-			if(controltype==1&&firebuttonrelease&&controller.getButton(controller.getMapping().buttonA)&&!firebutton) firebutton = true;
-			if(controltype==1&&!controller.getButton(controller.getMapping().buttonA)) firebuttonrelease = true; else firebuttonrelease = false;
-
 			if ((controltype==0 ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
-				BulletList.add(new Bullet(lastdir+180,new Vector3(sprite.x+4,sprite.y+4,0)));
+				BulletList.add(new Bullet(lastdir+180,new Vector3(sprite.x+4,sprite.y+4,0),"p"+skintype+"bullet.png",this));
 			}
 
 			playercol = MovementMath.DuplicateRect(sprite.collision);
@@ -414,8 +424,6 @@ public class HedTub extends Game {
 			moverot -= ((movevect.x+horzmove)*SLOWSPEED)*5;
 			movevect.x*=.88f;
 			horzmove*=(grounded ? .5f : .88f);
-			firebutton = false;
-			jumpbutton = false;
 
 			if(sprite.getPosition().y<-16) sprite.setPosition(sprite.x,WORLD_HEIGHT*TILE_WIDTH+16);
 			if(sprite.getPosition().y>WORLD_HEIGHT*TILE_WIDTH+16) sprite.setPosition(sprite.x,-16);
@@ -432,6 +440,70 @@ public class HedTub extends Game {
 			float ypos = sprite.collision.y-0.5f+addpos.y;
 
 			return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians(lastdir+90));
+		}
+		public void updateControls() {
+			if(controltype == 1) {
+				firebutton = false;
+				jumpbutton = false;
+
+				if(firebuttonrelease&&controller.getButton(controller.getMapping().buttonA)&&!firebutton) firebutton = true;
+                firebuttonrelease = !controller.getButton(controller.getMapping().buttonA);
+
+				if(jumpbuttonrelease&&controller.getButton(controller.getMapping().buttonB)&&!jumpbutton) jumpbutton = true;
+                jumpbuttonrelease = !controller.getButton(controller.getMapping().buttonB);
+
+
+				pressright = false;
+				boolean rdown = (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .45;
+
+				if (rdown&&releaseright) {
+					pressright = true;
+				}
+
+				if(!rdown) releaseright = true;
+				else releaseright = false;
+
+				pressleft = false;
+				boolean ldown = (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.45;
+
+				if (ldown&&releaseleft) {
+					pressleft = true;
+				}
+
+				if(!ldown) releaseleft = true;
+				else releaseleft = false;
+			}
+		}
+		public void takeDamage(){
+			health--;
+			healthwheel.incrementTime();
+			if(health<=0) {
+				PlayerList.remove(this);
+				DeletedPlayerList.add(this);
+				numplayers--;
+			}
+		}
+		public void countDead(){
+			deadcount+=Gdx.graphics.getDeltaTime();
+			if(deadcount>=2) {
+				DeletedPlayerList.remove(this);
+				PlayerList.add(this);
+				health = 8;
+				numplayers++;
+				healthwheel.time = 0;
+				deadcount = 0;
+				movevect = new Vector3();
+				//320, 160 spawn
+				float addx = 160;
+				float addy = 80;
+				if((int)(Math.random()*2)==0) {
+					addx = WORLD_WIDTH*TILE_WIDTH - 160;
+				}
+				if((int)(Math.random()*2)==0) {
+					addy = WORLD_HEIGHT*TILE_WIDTH - 80;
+				}
+				sprite.setPosition(addx,addy);
+			}
 		}
 	}
 }

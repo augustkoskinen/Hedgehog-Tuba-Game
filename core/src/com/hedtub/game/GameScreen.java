@@ -13,19 +13,23 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import java.util.ArrayList;
 
 public class GameScreen implements Screen {
+    //320, 160 spawn
     private OrthographicCamera cam;
     private HedTub game;
     private HedTub.Player player;
     private SpriteBatch batch;
     private Texture background;
+    private Texture blackpix;
     private FrameworkMO.AnimationSet openbattle = new FrameworkMO.AnimationSet("openbattle.png",36,1,0.025f);
     private float countopen = 0;
     private ArrayList<FrameworkMO.TextureSet> mapTextures = new ArrayList<>();
     public GameScreen (HedTub game) {
         this.game = game;
 
-        for (int i = 0; i<game.PlayerList.size();i++)
-            game.PlayerList.get(i).sprite.setPosition(game.WORLD_WIDTH/2*game.TILE_WIDTH,game.WORLD_HEIGHT/2*game.TILE_WIDTH+game.TILE_WIDTH);
+        for (int i = 0; i<game.PlayerList.size();i++) {
+            game.PlayerList.get(i).healthwheel = new FrameworkMO.AnimationSet("p"+game.PlayerList.get(i).skintype+"h.png",9,1,0.1f);
+            game.PlayerList.get(i).sprite.setPosition(game.WORLD_WIDTH / 2 * game.TILE_WIDTH, game.WORLD_HEIGHT / 2 * game.TILE_WIDTH + game.TILE_WIDTH);
+        }
 
         player = game.PlayerList.get(0);
 
@@ -36,6 +40,7 @@ public class GameScreen implements Screen {
         cam.setToOrtho(false, (game.WORLD_WIDTH*game.TILE_WIDTH), (game.WORLD_HEIGHT*game.TILE_WIDTH));
         cam.position.set(new Vector3(player.sprite.x, player.sprite.y, 0));
         background = new Texture("background.png");
+        blackpix = new Texture("blackpix.png");
 
         TextureRegion maptext;
         for(int i = 0; i<game.WORLD_MAP.length;i++) {
@@ -55,9 +60,16 @@ public class GameScreen implements Screen {
     public void render(float delta) {
 
         //clears screen
-        ScreenUtils.clear(0.415f, 0.764f, 0.851f, 1, true);
+        ScreenUtils.clear(0, 0, 0, 1, true);
 
-        cam.position.set((game.WORLD_WIDTH*game.TILE_WIDTH)/2, (game.WORLD_HEIGHT*game.TILE_WIDTH)/2, 0);
+        Vector3 movecampos = MovementMath.averagePos(game.PlayerList);
+        float camdis = MovementMath.pointDis(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
+        float camdir = MovementMath.pointDir(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
+        Vector3 campos = MovementMath.lengthDir(camdir, camdis);
+        cam.position.set(cam.position.x + campos.x * .05f, cam.position.y + campos.y * .05f, 0);
+        //cam.position.set((game.WORLD_WIDTH*game.TILE_WIDTH)/2, (game.WORLD_HEIGHT*game.TILE_WIDTH)/2, 0);
+        cam.zoom = (cam.zoom+Math.max(0.75f, MovementMath.furthestDist(game.PlayerList) / 350))/2;
+
         cam.update();
         batch.setProjectionMatrix(cam.combined);
 
@@ -66,21 +78,23 @@ public class GameScreen implements Screen {
         for(int i = 0; i<mapTextures.size(); i++)
             batch.draw(mapTextures.get(i).texture,mapTextures.get(i).x,mapTextures.get(i).y);
         batch.end();
+
         //draws sprites
         ArrayList<FrameworkMO.TextureSet> textures = new ArrayList<>();
 
         for(int i =0; i<game.numplayers;i++) {
-            TextureRegion playertext = player.updatePlayerPos();
-            player = game.PlayerList.get(i);
-            player.sprite.depth = player.sprite.y;
-            if (player.jumpdir != 0) {
-                player.jumpdir += player.jumpdiradd;
-                if (player.jumpdir == 0) {
-                    player.jumpdiradd = 0;
+            HedTub.Player curplayer = game.PlayerList.get(i);
+            curplayer.updateControls();
+            TextureRegion playertext = curplayer.updatePlayerPos();
+            curplayer.sprite.depth = curplayer.sprite.y;
+            if (curplayer.jumpdir != 0) {
+                curplayer.jumpdir += curplayer.jumpdiradd;
+                if (curplayer.jumpdir == 0) {
+                    curplayer.jumpdiradd = 0;
                 }
             }
-            textures.add(new FrameworkMO.TextureSet(playertext, player.sprite.x, player.sprite.y, player.sprite.depth, (float) Math.toRadians(player.moverot)));
-            textures.add(player.getEyeText());
+            textures.add(new FrameworkMO.TextureSet(playertext, curplayer.sprite.x, curplayer.sprite.y, curplayer.sprite.depth, (float) Math.toRadians(curplayer.moverot)));
+            textures.add(curplayer.getEyeText());
         }
 
         for(int i = 0; i<game.PoofCloudList.size();i++) {
@@ -125,10 +139,23 @@ public class GameScreen implements Screen {
                 i--;
         }
 
+        for(int i =0; i<game.numplayers;i++) {
+            HedTub.Player curplayer = game.PlayerList.get(i);
+            batch.draw(curplayer.healthwheel.getAnim(),(cam.position.x)-264+i*40,cam.position.y+112);
+        }
+
+        batch.draw(blackpix,-96,0,96,game.WORLD_HEIGHT*game.TILE_WIDTH);
+        batch.draw(blackpix,game.WORLD_WIDTH*game.TILE_WIDTH,0,96,game.WORLD_HEIGHT*game.TILE_WIDTH);
+        batch.draw(blackpix,0,-96,game.WORLD_WIDTH*game.TILE_WIDTH,96);
+        batch.draw(blackpix,0,game.WORLD_HEIGHT*game.TILE_WIDTH,game.WORLD_WIDTH*game.TILE_WIDTH,96);
         if(countopen < 0.875) {
             countopen+= Gdx.graphics.getDeltaTime();
 
-            batch.draw(openbattle.updateTime(1),0,0,cam.viewportWidth,cam.viewportHeight);
+            batch.draw(openbattle.updateTime(1),cam.position.x-cam.viewportWidth/2,cam.position.y-cam.viewportHeight/2,cam.viewportWidth,cam.viewportHeight);
+        }
+
+        for(int i = 0; i< game.DeletedPlayerList.size();i++){
+            game.DeletedPlayerList.get(i).countDead();
         }
 
         batch.end();

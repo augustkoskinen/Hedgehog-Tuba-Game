@@ -145,6 +145,13 @@ public class FrameworkMO {
             time += Gdx.graphics.getDeltaTime()*speed;
             return animation.getKeyFrame(time, repeat);
         }
+        public TextureRegion incrementTime() {
+            time += 0.1f;
+            return animation.getKeyFrame(time, repeat);
+        }
+        public TextureRegion getAnim() {
+            return animation.getKeyFrame(time, repeat);
+        }
     }
 
     public static class TextureSet {
