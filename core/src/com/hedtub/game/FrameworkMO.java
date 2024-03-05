@@ -1,15 +1,17 @@
 package com.hedtub.game;
 
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
 import java.util.ArrayList;
 
 public class FrameworkMO {
+    //draws sprites with depth layering
     public static void DrawWithLayering(SpriteBatch spritebatch, ArrayList<TextureSet> list) {
         ArrayList<TextureSet> textlist = new ArrayList<TextureSet>();
         for (TextureSet textureSet : list) {
@@ -29,6 +31,7 @@ public class FrameworkMO {
         spritebatch.end();
     }
 
+    //class for sprites w/ a hitbox
     public static class SpriteObjectSqr {
         Texture texture;
         Rectangle collision = new Rectangle();
@@ -80,6 +83,7 @@ public class FrameworkMO {
         }
     }
 
+    //class for animations and managing them
     public static class AnimationSet {
         Animation<TextureRegion> animation;
         Texture sheet;
@@ -154,6 +158,7 @@ public class FrameworkMO {
         }
     }
 
+    //class for a set of textures, position, rotation, and depth
     public static class TextureSet {
         TextureRegion texture;
         AnimationSet animationtexture;
@@ -195,109 +200,6 @@ public class FrameworkMO {
             x = xpos;
             y = ypos;
             rotation = 0;
-        }
-    }
-
-    public static class TransitionBox {
-        Rectangle collision = new Rectangle();
-        float rotation = 0;
-        String room;
-        float x;
-        float y;
-        float roomx = 0;
-        float roomy = 0;
-
-        public TransitionBox(float xpos, float ypos, float width, float height, float rot, String myroom, float iroomx, float iroomy) {
-            collision.height = height;
-            collision.width = width;
-            collision.x = xpos;
-            collision.y = ypos;
-            x = xpos;
-            y = ypos;
-            rotation = rot;
-            room = myroom;
-
-            //add 7 to spawn in middle of tile
-            roomx = iroomx;
-            roomy = iroomy;
-        }
-
-        public void setPosition(float xpos, float ypos) {
-            collision.setPosition(x + collision.width, y + collision.height);
-            x = xpos;
-            y = ypos;
-        }
-
-        public void addPosition(float addx, float addy) {
-            collision.setPosition(collision.x + addx, collision.y + addy);
-            x += addx;
-            y += addy;
-        }
-
-        public void addX(float addx) {
-            collision.x += addx;
-            x += addx;
-        }
-
-        public void addY(float addy) {
-            collision.y += addy;
-            y += addy;
-        }
-
-        public void setX(float ix) {
-            collision.x = ix + collision.width;
-            x = ix;
-        }
-
-        public void setY(float iy) {
-            collision.y = iy + collision.height;
-            y = iy;
-        }
-
-        public Vector3 getPosition() {
-            return new Vector3(x, y, 0);
-        }
-    }
-
-    public static class Cutscene {
-        public int type = 0;
-        public float time = 0;
-        public float maxtime = 0;
-        public ArrayList<TextureSet> textures = new ArrayList<TextureSet>();
-        public ArrayList<AnimationSet> animations = new ArrayList<AnimationSet>();
-        public ArrayList<SpriteObjectSqr> sprites = new ArrayList<SpriteObjectSqr>();
-
-        public Cutscene(int itype) {
-            type = itype;
-            switch (type) {
-                case 0: {
-                    maxtime = 0f;
-                    break;
-                }
-            }
-        }
-
-        public void UpdateTime() {
-            if (time <= maxtime) {
-                switch (type) {
-                    case 0: {
-                        if (time < 0) {
-
-                        }
-                        break;
-                    }
-                }
-            } else {
-                //incutscene = false;
-                //curcutscene = null;
-            }
-        }
-
-        public void DrawSprites(SpriteBatch ibatch, ArrayList<TextureSet> textlist) {
-            for (int i = 0; i < animations.size(); i++)
-                //textlist.add(new TextureSet(animations.get(i).updateTime(),pastmonstpos.x-16,pastmonstpos.y-12,-pastmonstpos.y));
-
-                DrawWithLayering(ibatch, textures);
         }
     }
 

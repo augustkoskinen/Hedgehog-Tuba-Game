@@ -1,18 +1,18 @@
 package com.hedtub.game;
 
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.Controllers;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
-import java.util.ArrayList;
-
 import com.badlogic.gdx.math.Vector3;
-import com.hedtub.game.FrameworkMO;
+
+import java.util.ArrayList;
 
 public class HedTub extends Game {
 	//world vars
@@ -23,10 +23,16 @@ public class HedTub extends Game {
 	public static float SLOWSPEED = 1;
 	public static int[][] WORLD_MAP = FrameworkMO.getMap();
 	public String launcher;
+	private FrameworkMO.AnimationSet openbattle;
+	public static float countopen = 0.875f;
+	public static OrthographicCamera gamecam  = null;
+	public static boolean gamestarted = false;
+	private Texture healthback;
+	private float waitstart = 0;
+	private FrameworkMO.AnimationSet startanim;
 
 	//player
 	public static int numplayers = 0;
-	public static Player mainplayer;
 	public static final float GRAVITY = 0.2f;
 	public static final float RUN_SPEED = 3;
 	public static final float WALK_SPEED = 2f;
@@ -34,7 +40,6 @@ public class HedTub extends Game {
 
 	//ArrayLists
 	public ArrayList<Rectangle> CollisionList;
-	public ArrayList<FrameworkMO.TransitionBox> TransitionList;
 	public static ArrayList<PoofCloud> PoofCloudList;
 	public static ArrayList<Bullet> BulletList;
 	public static ArrayList<HedTub.Monster> MonsterList = new ArrayList<>();
@@ -42,7 +47,10 @@ public class HedTub extends Game {
 	public static ArrayList<HedTub.Player> DeletedPlayerList = new ArrayList<>();
 	public static ArrayList<Controller> ControllerList = new ArrayList<>();
 	public static boolean keyboardtaken = false;
-	public boolean pause = false;
+	public static boolean pause = true;
+	private static boolean shake = false;
+	private static float shaketime = 0.7f;
+	public static Vector3 loadjiggle = new Vector3();
 	//main
 	public HedTub(String str) {
 		launcher = str;
@@ -51,11 +59,14 @@ public class HedTub extends Game {
 	@Override
 	public void create() {
 		CollisionList = new ArrayList<>();
-		TransitionList = new ArrayList<>();
 		PoofCloudList = new ArrayList<>();
 		BulletList = new ArrayList<>();
 
 		batch = new SpriteBatch();
+
+		openbattle = new FrameworkMO.AnimationSet("openbattle.png",36,1,0.025f);
+		startanim = new FrameworkMO.AnimationSet("countdown.png",3,1,1f);
+		healthback = new Texture("healthback.png");
 
 		//start
 		this.setScreen(new ChooseScreen(this));
@@ -64,11 +75,47 @@ public class HedTub extends Game {
 	@Override
 	public void render() {
 		super.render();
+
+		batch.begin();
+
+		if(gamestarted)
+			for(int i =0; i<numplayers;i++) {
+				HedTub.Player curplayer = PlayerList.get(i);
+				batch.draw(healthback,16+i*72,512-16,64,64);
+				batch.draw(curplayer.healthwheel.getAnim(),16+i*72,512-16,64,64);
+			}
+
+		if(countopen < 0.875) {
+			countopen+= Gdx.graphics.getDeltaTime();
+			batch.draw(openbattle.updateTime(1),0,0,1024,576);
+		}
+
+		if(waitstart < 2&&gamestarted) {
+			waitstart += Gdx.graphics.getDeltaTime();
+		} else if(gamestarted) {
+			if(startanim.time<startanim.framereg*3)
+				batch.draw(startanim.updateTime(1),448,224,128,128);
+			else
+				pause = false;
+		}
+
+		if(shake)
+			loadjiggle = new Vector3((shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),(shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),0);
+
+		if(shaketime>0) shaketime-=Gdx.graphics.getDeltaTime();
+		else {shaketime = .7f; shake = false; loadjiggle = new Vector3();}
+
+		batch.end();
 	}
 
 	@Override
 	public void dispose() {
 		batch.dispose();
+	}
+
+	public static void addShake(float add) {
+		shake = true;
+		shaketime = add;
 	}
 
 	//=============|
@@ -77,31 +124,53 @@ public class HedTub extends Game {
 
 
 	public static class PoofCloud {
-		private final float life = 0.7f;
+		private float life = 0.7f;
+		private int type = 0;
 		private float time = 0;
 		private float dir;
 		private float speed = 1;
 		private FrameworkMO.AnimationSet animation;
-		private Vector3 pos = new Vector3();
+		private Vector3 pos;
 
 		public PoofCloud(float dir, Vector3 pos){
 			animation = new FrameworkMO.AnimationSet("poof.png",7,1,0.1f);
 			this.pos = pos;
 			this.dir = dir;
 		}
+		public PoofCloud(float dir, Vector3 pos,int type){
+			this.type = type;
+			if(type==1) {
+				animation = new FrameworkMO.AnimationSet("poofcloud.png",8,1,0.1f,false);
+				this.pos = pos;
+				this.dir = 0;
+				this.life = 0.8f;
+			} else {
+				animation = new FrameworkMO.AnimationSet("poof.png",7,1,0.1f);
+				this.pos = pos;
+				this.dir = dir;
+			}
+		}
 		public FrameworkMO.TextureSet updateTime(){
-			Vector3 addvect = MovementMath.lengthDir((float)Math.toRadians(dir-90),speed);
-			pos = new Vector3(pos.x+addvect.x,pos.y+addvect.y,0);
+			if(type==0) {
+				Vector3 addvect = MovementMath.lengthDir((float) Math.toRadians(dir - 90), speed);
+				if(!pause)
+					pos = new Vector3(pos.x + addvect.x, pos.y + addvect.y, 0);
+			}
 
-			time+=Gdx.graphics.getDeltaTime();
-			speed*=.9f;
+			if(!pause) {
+				time += Gdx.graphics.getDeltaTime();
+				speed *= .9f;
+			}
 
 			if(time>=life) {
 				PoofCloudList.remove(this);
 				return null;
 			}
 
-			return new FrameworkMO.TextureSet(animation.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir));
+			if(!pause)
+				return new FrameworkMO.TextureSet(animation.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir));
+			else
+				return new FrameworkMO.TextureSet(animation.getAnim(),pos.x,pos.y,100000,(float)Math.toRadians(dir));
 		}
 	}
 
@@ -110,10 +179,10 @@ public class HedTub extends Game {
 		private float time = 0;
 		private float dir;
 		private float speed = 10;
-		private Vector3 pos = new Vector3();
+		private Vector3 pos;
 		private Texture text;
 		public Rectangle collision;
-		public Player homeplayer = null;
+		public Player homeplayer;
 
 		public Bullet(float dir, Vector3 pos,String path, Player homeplayer){
 			text = new Texture(path);
@@ -125,11 +194,14 @@ public class HedTub extends Game {
 		}
 		public FrameworkMO.TextureSet updateTime(){
 			Vector3 addvect = MovementMath.lengthDir((float)Math.toRadians(dir-90),speed);
-			pos = new Vector3(pos.x+addvect.x*SLOWSPEED,pos.y+addvect.y*SLOWSPEED,0);
-			collision.x+=addvect.x*SLOWSPEED;
-			collision.y+=addvect.y*SLOWSPEED;
+			if(!pause) {
+				pos = new Vector3(pos.x + addvect.x * SLOWSPEED, pos.y + addvect.y * SLOWSPEED, 0);
+				collision.x += addvect.x * SLOWSPEED;
+				collision.y += addvect.y * SLOWSPEED;
+			}
 
-			time+=Gdx.graphics.getDeltaTime()*SLOWSPEED;
+			if(!pause)
+				time+=Gdx.graphics.getDeltaTime()*SLOWSPEED;
 
 			for(int i = 0; i<PlayerList.size();i++) {
 				if (PlayerList.get(i) != homeplayer && MovementMath.overlaps(collision, PlayerList.get(i).sprite.collision)) {
@@ -202,9 +274,11 @@ public class HedTub extends Game {
 			else
 				addvect = MovementMath.lengthDir((float)Math.toRadians(dir+85),speed).add(floatpos);
 
-			pos = new Vector3(pos.x+addvect.x*SLOWSPEED,pos.y+addvect.y*SLOWSPEED,0);
-			collision.x+=addvect.x*SLOWSPEED;
-			collision.y+=addvect.y*SLOWSPEED;
+			if(!pause) {
+				pos = new Vector3(pos.x + addvect.x * SLOWSPEED, pos.y + addvect.y * SLOWSPEED, 0);
+				collision.x += addvect.x * SLOWSPEED;
+				collision.y += addvect.y * SLOWSPEED;
+			}
 
 			if(life < 0) {
 				MonsterList.remove(this);
@@ -219,7 +293,10 @@ public class HedTub extends Game {
 				floatadd = 0.1f;
 			}
 
-			return dir<-90||dir>90 ? new FrameworkMO.TextureSet(animl.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90)) : new FrameworkMO.TextureSet(animr.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90));
+			if(!pause)
+				return dir<-90||dir>90 ? new FrameworkMO.TextureSet(animl.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90)) : new FrameworkMO.TextureSet(animr.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90));
+			else
+				return dir<-90||dir>90 ? new FrameworkMO.TextureSet(animl.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90)) : new FrameworkMO.TextureSet(animr.getAnim(),pos.x,pos.y,100000,(float)Math.toRadians(dir-90));
 		}
 
 		public void takeDamage() {
@@ -246,6 +323,7 @@ public class HedTub extends Game {
 		public int jumpdiradd = 0;
 		public int controltype;
 		public int skintype = 1;
+		public int prevskintype = 1;
 		public Controller controller;
 		public boolean chosechar = false;
 		public boolean firebutton = false;
@@ -270,13 +348,22 @@ public class HedTub extends Game {
 				controller = Controllers.getControllers().get(0);
 			}
 		}
-		public Player(Vector3 pos, int type, Controller controller,int skintype) {
+		public Player(Vector3 pos, int type, Controller controller,int skintype, ArrayList<Integer> colors) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			controltype = type;
 			this.skintype = skintype;
+			if(colors.contains(this.skintype)) {
+				int i = 1;
+				while (colors.contains(i)) {
+					i++;
+				}
+				this.skintype = i;
+			}
+
+			colors.add(this.skintype);
 
 			if(Controllers.getControllers().size==0) controltype = 0;
 			if(controltype==1) {
@@ -289,147 +376,147 @@ public class HedTub extends Game {
 			int leftmove = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.A) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25) ? 1 : 0;
 			int netmove = (rightmove-leftmove);
 			Rectangle playercol = MovementMath.DuplicateRect(sprite.collision);
-
-			SLOWSPEED = 1;
-			if (numplayers==1&&(controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
-				SLOWSPEED = 0.25f;
-			}
-
-			if(netmove!=0) {
-				float movespeed = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? RUN_SPEED : WALK_SPEED;
-				horzmove = netmove*(movespeed)+movevect.x;
-				horzmove = Math.max(Math.min(movevect.x+horzmove,movespeed),-movespeed)-movevect.x;
-				movedir = rightmove-leftmove;
-			}
-
-			animlw.framereg = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
-			animrw.framereg = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
-
 			playertext = new TextureRegion(new Texture("p"+skintype+"body.png"));
 
-			if (movevect.y < 10) movevect.y -= GRAVITY*SLOWSPEED;
-
-			boolean grounded = MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(0,-1,0),new Vector3(15,15,0));
-			boolean wallsliding = ((MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(1,0,0),new Vector3(15,15,0))&&rightmove==1)||(MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(-1,0,0),new Vector3(15,15,0))&&leftmove==1));
-			if(grounded) jumpcount = 5;
-
-			if ((controltype==0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&&jumpcount>0) {
-				int degree = MovementMath.toDegrees(controller);
-				if(degree!=-1) {
-					float movex = 0;
-					float movey = 0;
-					int turnfactor = 0;
-					switch (degree) {
-						case 0 : {
-							movey = JUMP_SPEED;
-							turnfactor = -8;
-							break;
-						}
-						case 45 : {
-							movex = -JUMP_SPEED;
-							movey = JUMP_SPEED;
-							turnfactor = -8;
-							break;
-						}
-						case 90 : {
-							movex = -JUMP_SPEED;
-							turnfactor = -36;
-							break;
-						}
-						case 135 : {
-							movex = -JUMP_SPEED;
-							movey = -JUMP_SPEED;
-							turnfactor = -36;
-							break;
-						}
-						case 180 : {
-							movey = -JUMP_SPEED;
-							turnfactor = -36;
-							break;
-						}
-						case 225 : {
-							movex = JUMP_SPEED;
-							movey = -JUMP_SPEED;
-							turnfactor = -36;
-							break;
-						}
-						case 270 : {
-							movex = JUMP_SPEED;
-							turnfactor = -36;
-							break;
-						}
-						case 315 : {
-							movex = JUMP_SPEED;
-							movey = JUMP_SPEED;
-							turnfactor = -8;
-							break;
-						}
-					}
-					PoofCloudList.add(new PoofCloud(degree,new Vector3(sprite.x+4,sprite.y+4,0)));
-					jumpcount--;
-					if(jumpdiradd==0) {
-						jumpdiradd = movedir*turnfactor;
-						if(movedir<0)
-							jumpdir = -360;
-						else
-							jumpdir = 360;
-					}
-					if(movevect.y < 0) movevect.y = 0;
-
-					if(!wallsliding) {
-						movevect.x += movex;
-						movevect.y += movey;
-					} else {
-						movevect.x = -movedir * 4.5f;
-						movevect.y += 3;
-					}
-					movevect.y = Math.min(movevect.y,5);
-
-					lastdir = degree;
+			if(!pause) {
+				SLOWSPEED = 1;
+				if (numplayers == 1 && (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
+					SLOWSPEED = 0.25f;
 				}
-			} else {
-				if(wallsliding) movevect.y = -1;
-			}
 
-			if(MovementMath.toDegrees(controller)!=-1) lastdir = MovementMath.toDegrees(controller);
-
-			if ((controltype==0 ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
-				BulletList.add(new Bullet(lastdir+180,new Vector3(sprite.x+4,sprite.y+4,0),"p"+skintype+"bullet.png",this));
-			}
-
-			playercol = MovementMath.DuplicateRect(sprite.collision);
-
-			if (MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3((movevect.x+horzmove)*SLOWSPEED,0,0),new Vector3(15,15,0))){
-				float sign = Math.abs(movevect.x+horzmove)/(movevect.x+horzmove);
-				while(!MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(sign,0,0),new Vector3(15,15,0))){
-					sprite.addPosition(new Vector3(sign,0,0));
-					playercol = MovementMath.DuplicateRect(sprite.collision);
+				if (netmove != 0) {
+					float movespeed = WALK_SPEED; //(controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? RUN_SPEED :
+					horzmove = netmove * (movespeed) + movevect.x;
+					horzmove = Math.max(Math.min(movevect.x + horzmove, movespeed), -movespeed) - movevect.x;
+					movedir = rightmove - leftmove;
 				}
-				movevect.x = 0;
-				horzmove = 0;
-			}
-			sprite.addPosition(new Vector3((movevect.x+horzmove)*SLOWSPEED,0,0));
 
-			playercol = MovementMath.DuplicateRect(sprite.collision);
-			if (MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(0,(movevect.y)*SLOWSPEED,0),new Vector3(15,15,0))){
-				float sign = Math.abs(movevect.y)/movevect.y;
-				while(!MovementMath.CheckCollisions(WORLD_MAP,playercol,0,new Vector3(0,sign,0),new Vector3(15,15,0))) {
-					sprite.addPosition(new Vector3(0,sign,0));
-					playercol = MovementMath.DuplicateRect(sprite.collision);
+				animlw.framereg = (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
+				animrw.framereg = (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
+
+				if (movevect.y < 10) movevect.y -= GRAVITY * SLOWSPEED;
+
+				boolean grounded = MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(0, -1, 0), new Vector3(15, 15, 0));
+				boolean wallsliding = ((MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(1, 0, 0), new Vector3(15, 15, 0)) && rightmove == 1) || (MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(-1, 0, 0), new Vector3(15, 15, 0)) && leftmove == 1));
+				if (grounded) jumpcount = 5;
+
+				if ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&& jumpcount > 0) {
+					int degree = MovementMath.toDegrees(controller);
+					if (degree != -1) {
+						float movex = 0;
+						float movey = 0;
+						int turnfactor = 0;
+						switch (degree) {
+							case 0: {
+								movey = JUMP_SPEED;
+								turnfactor = -8;
+								break;
+							}
+							case 45: {
+								movex = -JUMP_SPEED;
+								movey = JUMP_SPEED;
+								turnfactor = -8;
+								break;
+							}
+							case 90: {
+								movex = -JUMP_SPEED;
+								turnfactor = -36;
+								break;
+							}
+							case 135: {
+								movex = -JUMP_SPEED;
+								movey = -JUMP_SPEED;
+								turnfactor = -36;
+								break;
+							}
+							case 180: {
+								movey = -JUMP_SPEED;
+								turnfactor = -36;
+								break;
+							}
+							case 225: {
+								movex = JUMP_SPEED;
+								movey = -JUMP_SPEED;
+								turnfactor = -36;
+								break;
+							}
+							case 270: {
+								movex = JUMP_SPEED;
+								turnfactor = -36;
+								break;
+							}
+							case 315: {
+								movex = JUMP_SPEED;
+								movey = JUMP_SPEED;
+								turnfactor = -8;
+								break;
+							}
+						}
+						PoofCloudList.add(new PoofCloud(degree, new Vector3(sprite.x + 4, sprite.y + 4, 0)));
+						jumpcount--;
+						if (jumpdiradd == 0) {
+							jumpdiradd = movedir * turnfactor;
+							if (movedir < 0)
+								jumpdir = -360;
+							else
+								jumpdir = 360;
+						}
+						if (movevect.y < 0) movevect.y = 0;
+
+						if (!wallsliding) {
+							movevect.x += movex;
+							movevect.y += movey;
+						} else {
+							movevect.x = -movedir * 4.5f;
+							movevect.y += 3;
+						}
+						movevect.y = Math.min(movevect.y, 5);
+
+						lastdir = degree;
+					}
+				} else {
+					if (wallsliding) movevect.y = -1;
 				}
-				movevect.y = 0;
+
+				if (MovementMath.toDegrees(controller) != -1) lastdir = MovementMath.toDegrees(controller);
+
+				if ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
+					BulletList.add(new Bullet(lastdir + 180, new Vector3(sprite.x + 4, sprite.y + 4, 0), "p" + skintype + "bullet.png", this));
+				}
+
+				playercol = MovementMath.DuplicateRect(sprite.collision);
+
+				if (MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3((movevect.x + horzmove) * SLOWSPEED, 0, 0), new Vector3(15, 15, 0))) {
+					float sign = Math.abs(movevect.x + horzmove) / (movevect.x + horzmove);
+					while (!MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(sign, 0, 0), new Vector3(15, 15, 0))) {
+						sprite.addPosition(new Vector3(sign, 0, 0));
+						playercol = MovementMath.DuplicateRect(sprite.collision);
+					}
+					movevect.x = 0;
+					horzmove = 0;
+				}
+				sprite.addPosition(new Vector3((movevect.x + horzmove) * SLOWSPEED, 0, 0));
+
+				playercol = MovementMath.DuplicateRect(sprite.collision);
+				if (MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(0, (movevect.y) * SLOWSPEED, 0), new Vector3(15, 15, 0))) {
+					float sign = Math.abs(movevect.y) / movevect.y;
+					while (!MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(0, sign, 0), new Vector3(15, 15, 0))) {
+						sprite.addPosition(new Vector3(0, sign, 0));
+						playercol = MovementMath.DuplicateRect(sprite.collision);
+					}
+					movevect.y = 0;
+				}
+				sprite.addPosition(new Vector3(0, (movevect.y) * SLOWSPEED, 0));
+
+				moverot -= ((movevect.x + horzmove) * SLOWSPEED) * 5;
+				movevect.x *= .88f;
+				horzmove *= (grounded ? .5f : .88f);
+
+				if (sprite.getPosition().y < -16) sprite.setPosition(sprite.x, WORLD_HEIGHT * TILE_WIDTH + 16);
+				if (sprite.getPosition().y > WORLD_HEIGHT * TILE_WIDTH + 16) sprite.setPosition(sprite.x, -16);
+				if (sprite.getPosition().x < -16) sprite.setPosition(WORLD_WIDTH * TILE_WIDTH + 16, sprite.y);
+				if (sprite.getPosition().x > WORLD_WIDTH * TILE_WIDTH + 16) sprite.setPosition(-16, sprite.y);
 			}
-
-			sprite.addPosition(new Vector3(0,(movevect.y)*SLOWSPEED,0));
-			moverot -= ((movevect.x+horzmove)*SLOWSPEED)*5;
-			movevect.x*=.88f;
-			horzmove*=(grounded ? .5f : .88f);
-
-			if(sprite.getPosition().y<-16) sprite.setPosition(sprite.x,WORLD_HEIGHT*TILE_WIDTH+16);
-			if(sprite.getPosition().y>WORLD_HEIGHT*TILE_WIDTH+16) sprite.setPosition(sprite.x,-16);
-			if(sprite.getPosition().x<-16) sprite.setPosition(WORLD_WIDTH*TILE_WIDTH+16,sprite.y);
-			if(sprite.getPosition().x>WORLD_WIDTH*TILE_WIDTH+16) sprite.setPosition(-16,sprite.y);
-
 			return playertext;
 		}
 
@@ -476,11 +563,14 @@ public class HedTub extends Game {
 		}
 		public void takeDamage(){
 			health--;
+			addShake(0.3f);
 			healthwheel.incrementTime();
 			if(health<=0) {
 				PlayerList.remove(this);
 				DeletedPlayerList.add(this);
 				numplayers--;
+				addShake(0.6f);
+				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-12,sprite.y-12,0),1));
 			}
 		}
 		public void countDead(){
@@ -493,7 +583,7 @@ public class HedTub extends Game {
 				healthwheel.time = 0;
 				deadcount = 0;
 				movevect = new Vector3();
-				//320, 160 spawn
+
 				float addx = 160;
 				float addy = 80;
 				if((int)(Math.random()*2)==0) {

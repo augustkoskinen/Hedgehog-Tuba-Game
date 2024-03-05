@@ -1,20 +1,15 @@
 package com.hedtub.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.controllers.*;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.controllers.Controller;
 
+import java.awt.*;
 import java.util.ArrayList;
-import java.util.Objects;
 
 import static com.badlogic.gdx.math.MathUtils.clamp;
 
@@ -106,10 +101,10 @@ public class MovementMath extends ApplicationAdapter {
                 return 270;
             }
         } else {
-            boolean rightmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .25);
-            boolean leftmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25);
-            boolean upmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d < -.25);
-            boolean downmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d > .25);
+            boolean rightmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .4);
+            boolean leftmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.4);
+            boolean upmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d < -.4);
+            boolean downmove = ((double) Math.round((controller.getAxis(controller.getMapping().axisLeftY)) * 100d) / 100d > .4);
 
             if (upmove && rightmove) {
                 return 315;
@@ -134,14 +129,6 @@ public class MovementMath extends ApplicationAdapter {
             }
             if (rightmove) {
                 return 270;
-            }
-        }
-        return -1;
-    }
-    static public int CheckTransitionCollisions(Rectangle colbox, Array<FrameworkMO.TransitionBox> translist){
-        for(int i = 0; i< translist.size;i++){
-            if(colbox!=translist.get(i).collision&&overlaps(colbox,translist.get(i).collision)) {
-                return i;
             }
         }
         return -1;
@@ -215,5 +202,51 @@ public class MovementMath extends ApplicationAdapter {
             }
 
         return furthestdist;
+    }
+    static boolean polygonIntersection(Polygon a, Polygon b)
+    {
+        for (int x=0; x<2; x++)
+        {
+            Polygon polygon = (x==0) ? a : b;
+
+            for (int i1=0; i1<polygon.npoints; i1++)
+            {
+                int   i2 = (i1 + 1) % polygon.npoints;
+                Point p1 = new Point(polygon.xpoints[i1],polygon.ypoints[i1]);
+                Point p2 = new Point(polygon.xpoints[i2],polygon.ypoints[i2]);
+
+                Point normal = new Point(p2.y - p1.y, p1.x - p2.x);
+
+                double minA = Double.POSITIVE_INFINITY;
+                double maxA = Double.NEGATIVE_INFINITY;
+
+                for (int i = 0; i < a.npoints; i++)
+                {
+                    double projected = normal.x * a.xpoints[i] + normal.y * a.ypoints[i];
+
+                    if (projected < minA)
+                        minA = projected;
+                    if (projected > maxA)
+                        maxA = projected;
+                }
+
+                double minB = Double.POSITIVE_INFINITY;
+                double maxB = Double.NEGATIVE_INFINITY;
+
+                for (int i = 0; i < b.npoints; i++) {
+                    double projected = normal.x * b.xpoints[i] + normal.y * b.xpoints[i];
+
+                    if (projected < minB)
+                        minB = projected;
+                    if (projected > maxB)
+                        maxB = projected;
+                }
+
+                if (maxA < minB || maxB < minA)
+                    return false;
+            }
+        }
+
+        return true;
     }
 }
