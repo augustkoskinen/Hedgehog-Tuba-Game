@@ -8,7 +8,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.controllers.Controller;
 
-import java.awt.*;
 import java.util.ArrayList;
 
 import static com.badlogic.gdx.math.MathUtils.clamp;
@@ -203,6 +202,7 @@ public class MovementMath extends ApplicationAdapter {
 
         return furthestdist;
     }
+    /*
     static boolean polygonIntersection(Polygon a, Polygon b)
     {
         for (int x=0; x<2; x++)
@@ -249,4 +249,5 @@ public class MovementMath extends ApplicationAdapter {
 
         return true;
     }
+    */
 }
