@@ -2,7 +2,7 @@ package com.hedtub.game;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.hedtub.game.HedTub;
+import com.hedtub.game.MainMenuScreen;
 
 // Please note that on macOS your application needs to be started with the -XstartOnFirstThread JVM argument
 public class DesktopLauncher {
@@ -11,6 +11,6 @@ public class DesktopLauncher {
 		config.setForegroundFPS(60);
 		config.setWindowedMode(1024,576);
 		config.setTitle("Hedgehog Tuba Game");
-		new Lwjgl3Application(new HedTub("desktop"), config);
+		new Lwjgl3Application(new MainMenuScreen("desktop"), config);
 	}
 }

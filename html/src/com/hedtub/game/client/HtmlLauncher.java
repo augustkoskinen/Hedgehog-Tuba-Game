@@ -3,7 +3,7 @@ package com.hedtub.game.client;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.backends.gwt.GwtApplication;
 import com.badlogic.gdx.backends.gwt.GwtApplicationConfiguration;
-import com.hedtub.game.HedTub;
+import com.hedtub.game.MainMenuScreen;
 
 public class HtmlLauncher extends GwtApplication {
 
@@ -17,6 +17,6 @@ public class HtmlLauncher extends GwtApplication {
 
         @Override
         public ApplicationListener createApplicationListener () {
-                return new HedTub("html");
+                return new MainMenuScreen("html");
         }
 }

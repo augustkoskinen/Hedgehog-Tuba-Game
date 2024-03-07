@@ -182,7 +182,7 @@ public class MovementMath extends ApplicationAdapter {
         return false;
     }
 
-    static public Vector3 averagePos(ArrayList<HedTub.Player> playerlist) {
+    static public Vector3 averagePos(ArrayList<OfflineManager.Player> playerlist) {
         float sumx = 0;
         float sumy = 0;
         for(int i  = 0; i<playerlist.size();i++) {
@@ -191,7 +191,7 @@ public class MovementMath extends ApplicationAdapter {
         }
         return new Vector3(sumx/playerlist.size(),sumy/playerlist.size(),0);
     }
-    static public float furthestDist(ArrayList<HedTub.Player> playerlist) {
+    static public float furthestDist(ArrayList<OfflineManager.Player> playerlist) {
         float furthestdist = 0;
         for(int i  = 0; i<playerlist.size()-1;i++)
             for (int j = i+1; j < playerlist.size(); j++) {

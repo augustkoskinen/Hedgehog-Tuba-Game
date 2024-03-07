@@ -1,5 +1,6 @@
 package com.hedtub.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -14,57 +15,59 @@ import java.util.ArrayList;
 public class GameScreen implements Screen {
     //320, 160 spawn
     private OrthographicCamera cam;
-    private HedTub game;
-    private HedTub.Player player;
+    private OfflineManager manager;
+    private MainMenuScreen game;
+    private OfflineManager.Player player;
     private SpriteBatch batch;
     private Texture background;
     private Texture blackpix;
     private ArrayList<FrameworkMO.TextureSet> mapTextures = new ArrayList<>();
-    public GameScreen (HedTub game) {
+    public GameScreen (OfflineManager manager, MainMenuScreen game) {
         this.game = game;
+        this.manager = manager;
 
-        for (int i = 0; i<game.PlayerList.size();i++) {
-            game.PlayerList.get(i).healthwheel = new FrameworkMO.AnimationSet("p"+game.PlayerList.get(i).skintype+"h.png",9,1,0.1f);
+        for (int i = 0; i<manager.PlayerList.size();i++) {
+            manager.PlayerList.get(i).healthwheel = new FrameworkMO.AnimationSet("p"+manager.PlayerList.get(i).skintype+"h.png",9,1,0.1f);
 
             float addx = 160;
             float addy = 80;
             if((int)(Math.random()*2)==0) {
-                addx = game.WORLD_WIDTH*game.TILE_WIDTH - 160;
+                addx = manager.WORLD_WIDTH*manager.TILE_WIDTH - 160;
             }
             if((int)(Math.random()*2)==0) {
-                addy = game.WORLD_HEIGHT*game.TILE_WIDTH - 80;
+                addy = manager.WORLD_HEIGHT*manager.TILE_WIDTH - 80;
             }
-            game.PlayerList.get(i).sprite.setPosition(addx,addy);
+            manager.PlayerList.get(i).sprite.setPosition(addx,addy);
         }
 
-        player = game.PlayerList.get(0);
+        player = manager.PlayerList.get(0);
 
         batch = new SpriteBatch();
 
         // cam setup
         cam = new OrthographicCamera();
-        cam.setToOrtho(false, (game.WORLD_WIDTH*game.TILE_WIDTH), (game.WORLD_HEIGHT*game.TILE_WIDTH));
+        cam.setToOrtho(false, (manager.WORLD_WIDTH*manager.TILE_WIDTH), (manager.WORLD_HEIGHT*manager.TILE_WIDTH));
         cam.position.set(new Vector3(player.sprite.x, player.sprite.y, 0));
         background = new Texture("background.png");
         blackpix = new Texture("blackpix.png");
 
         TextureRegion maptext;
-        for(int i = 0; i<game.WORLD_MAP.length;i++) {
-            for (int j = 0; j < game.WORLD_MAP[i].length; j++) {
-                maptext = FrameworkMO.getSpriteTilemap(game.WORLD_MAP, i, j, game.WORLD_MAP.length, game.WORLD_MAP[i].length);
+        for(int i = 0; i<manager.WORLD_MAP.length;i++) {
+            for (int j = 0; j < manager.WORLD_MAP[i].length; j++) {
+                maptext = FrameworkMO.getSpriteTilemap(manager.WORLD_MAP, i, j, manager.WORLD_MAP.length, manager.WORLD_MAP[i].length);
                 if (maptext != null) {
-                    mapTextures.add(new FrameworkMO.TextureSet(maptext, i * game.TILE_WIDTH, j * game.TILE_WIDTH, j * game.TILE_WIDTH));
+                    mapTextures.add(new FrameworkMO.TextureSet(maptext, i * manager.TILE_WIDTH, j * manager.TILE_WIDTH, j * manager.TILE_WIDTH));
                 }
             }
         }
 
 
-        game.countopen = 0;
-        game.gamecam = cam;
-        game.gamestarted = true;
+        manager.countopen = 0;
+        manager.gamecam = cam;
+        manager.gamestarted = true;
 
         //for(int i = 0; i<10; i++)
-        //game.MonsterList.add(new HedTub.Monster(new Vector3((int)(Math.random()*game.WORLD_WIDTH*32),(int)(Math.random()*game.WORLD_HEIGHT*32),0),0));
+        //manager.MonsterList.add(new OfflineManager.Monster(new Vector3((int)(Math.random()*manager.WORLD_WIDTH*32),(int)(Math.random()*manager.WORLD_HEIGHT*32),0),0));
     }
 
     @Override
@@ -72,24 +75,24 @@ public class GameScreen implements Screen {
         //clears screen
         ScreenUtils.clear(0, 0, 0, 1, true);
 
-        Vector3 movecampos = MovementMath.averagePos(game.PlayerList);
+        Vector3 movecampos = MovementMath.averagePos(manager.PlayerList);
         float camdis = MovementMath.pointDis(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
         float camdir = MovementMath.pointDir(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
         Vector3 campos = MovementMath.lengthDir(camdir, camdis);
-        cam.position.set(cam.position.x + campos.x * .05f + game.loadjiggle.x, cam.position.y + campos.y * .05f + game.loadjiggle.y, 0);
-        cam.zoom = (cam.zoom+Math.max(0.9f, MovementMath.furthestDist(game.PlayerList) / 550))/2;
-        //cam.position.set((game.WORLD_WIDTH*game.TILE_WIDTH)/2, (game.WORLD_HEIGHT*game.TILE_WIDTH)/2, 0);
+        cam.position.set(cam.position.x + campos.x * .05f + manager.loadjiggle.x, cam.position.y + campos.y * .05f + manager.loadjiggle.y, 0);
+        cam.zoom = (cam.zoom+Math.max(0.9f, MovementMath.furthestDist(manager.PlayerList) / 550))/2;
+        //cam.position.set((manager.WORLD_WIDTH*manager.TILE_WIDTH)/2, (manager.WORLD_HEIGHT*manager.TILE_WIDTH)/2, 0);
 
         cam.update();
         batch.setProjectionMatrix(cam.combined);
 
         batch.begin();
-        batch.draw(background,0,0,game.WORLD_WIDTH*game.TILE_WIDTH,game.WORLD_HEIGHT*game.TILE_WIDTH);
+        batch.draw(background,0,0,manager.WORLD_WIDTH*manager.TILE_WIDTH,manager.WORLD_HEIGHT*manager.TILE_WIDTH);
         for(int i = 0; i<mapTextures.size(); i++)
             batch.draw(mapTextures.get(i).texture,mapTextures.get(i).x,mapTextures.get(i).y);
 
-        for(int i =0; i<game.numplayers;i++) {
-            HedTub.Player curplayer = game.PlayerList.get(i);
+        for(int i =0; i<manager.numplayers;i++) {
+            OfflineManager.Player curplayer = manager.PlayerList.get(i);
             curplayer.updateControls();
             TextureRegion playertext = curplayer.updatePlayerPos();
             curplayer.sprite.depth = curplayer.sprite.y;
@@ -104,8 +107,8 @@ public class GameScreen implements Screen {
             batch.draw(eyetext.texture,eyetext.x,eyetext.y,eyetext.texture.getRegionWidth()/2,eyetext.texture.getRegionHeight()/2,eyetext.texture.getRegionWidth(),eyetext.texture.getRegionHeight(),1,1,(float) Math.toDegrees(eyetext.rotation));
         }
 
-        for(int i = 0; i<game.PoofCloudList.size();i++) {
-            FrameworkMO.TextureSet text = game.PoofCloudList.get(i).updateTime();
+        for(int i = 0; i<manager.PoofCloudList.size();i++) {
+            FrameworkMO.TextureSet text = manager.PoofCloudList.get(i).updateTime();
             if(text!=null) {
                 batch.draw(text.texture,text.x,text.y,text.texture.getRegionWidth()/2,text.texture.getRegionHeight()/2,text.texture.getRegionWidth(),text.texture.getRegionHeight(),1,1,(float) Math.toDegrees(text.rotation));
             } else
@@ -113,28 +116,28 @@ public class GameScreen implements Screen {
         }
 
         ArrayList<Rectangle> MonsterCollisionList = new ArrayList<>();
-        for(int i = 0; i<game.BulletList.size();i++) {
-            FrameworkMO.TextureSet text = game.BulletList.get(i).updateTime();
+        for(int i = 0; i<manager.BulletList.size();i++) {
+            FrameworkMO.TextureSet text = manager.BulletList.get(i).updateTime();
             if(text!=null) {
                 batch.draw(text.texture,text.x,text.y,text.texture.getRegionWidth()/2,text.texture.getRegionHeight()/2,text.texture.getRegionWidth(),text.texture.getRegionHeight(),1,1,(float) Math.toDegrees(text.rotation));
-                MonsterCollisionList.add(game.BulletList.get(i).collision);
+                MonsterCollisionList.add(manager.BulletList.get(i).collision);
             } else
                 i--;
         }
 
         int colind;
-        for(int i = 0; i<game.MonsterList.size();i++) {
-            colind = MovementMath.CheckCollisions(game.MonsterList.get(i).collision,MonsterCollisionList);
-            FrameworkMO.TextureSet text = game.MonsterList.get(i).updateTime(player.sprite.getPosition());
+        for(int i = 0; i<manager.MonsterList.size();i++) {
+            colind = MovementMath.CheckCollisions(manager.MonsterList.get(i).collision,MonsterCollisionList);
+            FrameworkMO.TextureSet text = manager.MonsterList.get(i).updateTime(player.sprite.getPosition());
 
             if(text!=null) {
                 if(colind!=-1) {
                     int bulletind = -1;
-                    for(int j = 0; j < game.BulletList.size(); j++)
-                        if(game.BulletList.get(j).collision.equals(MonsterCollisionList.get(colind)))
+                    for(int j = 0; j < manager.BulletList.size(); j++)
+                        if(manager.BulletList.get(j).collision.equals(MonsterCollisionList.get(colind)))
                             bulletind = j;
-                    if (bulletind != -1) game.BulletList.get(bulletind).Remove();
-                    game.MonsterList.get(i).takeDamage();
+                    if (bulletind != -1) manager.BulletList.get(bulletind).Remove();
+                    manager.MonsterList.get(i).takeDamage();
                 }
 
                 batch.draw(text.texture,text.x,text.y);
@@ -142,16 +145,43 @@ public class GameScreen implements Screen {
                 i--;
         }
 
-        batch.draw(blackpix,-96,0,96,game.WORLD_HEIGHT*game.TILE_WIDTH);
-        batch.draw(blackpix,game.WORLD_WIDTH*game.TILE_WIDTH,0,96,game.WORLD_HEIGHT*game.TILE_WIDTH);
-        batch.draw(blackpix,0,-96,game.WORLD_WIDTH*game.TILE_WIDTH,96);
-        batch.draw(blackpix,0,game.WORLD_HEIGHT*game.TILE_WIDTH,game.WORLD_WIDTH*game.TILE_WIDTH,96);
+        batch.draw(blackpix,-96,0,96,manager.WORLD_HEIGHT*manager.TILE_WIDTH);
+        batch.draw(blackpix,manager.WORLD_WIDTH*manager.TILE_WIDTH,0,96,manager.WORLD_HEIGHT*manager.TILE_WIDTH);
+        batch.draw(blackpix,0,-96,manager.WORLD_WIDTH*manager.TILE_WIDTH,96);
+        batch.draw(blackpix,0,manager.WORLD_HEIGHT*manager.TILE_WIDTH,manager.WORLD_WIDTH*manager.TILE_WIDTH,96);
 
-        for(int i = 0; i< game.DeletedPlayerList.size();i++){
-            game.DeletedPlayerList.get(i).countDead();
+        for(int i = 0; i< manager.DeletedPlayerList.size();i++){
+            manager.DeletedPlayerList.get(i).countDead();
         }
 
         batch.end();
+
+        //ui
+        manager.batch.begin();
+        if(manager.gamestarted)
+            for(int i =0; i<manager.numplayers;i++) {
+                OfflineManager.Player curplayer = manager.PlayerList.get(i);
+                manager.batch.draw(manager.healthback,16+i*72,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+                manager.batch.draw(curplayer.healthwheel.getAnim(),16+i*72,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+            }
+
+        if(manager.countopen < 0.875) {
+            manager.countopen+= Gdx.graphics.getDeltaTime();
+            manager.batch.draw(manager.openbattle.updateTime(1),0,0,manager.WIND_WIDTH,manager.WIND_HEIGHT);
+        }
+
+        if(manager.waitstart < 2&&manager.gamestarted) {
+            manager.waitstart += Gdx.graphics.getDeltaTime();
+        } else if(manager.gamestarted) {
+            if(manager.startanim.time+Gdx.graphics.getDeltaTime()<manager.startanim.framereg*3)
+                manager.batch.draw(manager.startanim.updateTime(1),manager.WIND_WIDTH/2-64*manager.CHANGE_RATIO,manager.WIND_HEIGHT/2-64*manager.CHANGE_RATIO,128*manager.CHANGE_RATIO,128*manager.CHANGE_RATIO);
+            else
+                manager.pause = false;
+        }
+
+        manager.updateShake();
+
+        manager.batch.end();
     }
 
     //necessary overrides
