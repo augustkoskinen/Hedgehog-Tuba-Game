@@ -161,8 +161,8 @@ public class GameScreen implements Screen {
         if(manager.gamestarted)
             for(int i =0; i<manager.numplayers;i++) {
                 OfflineManager.Player curplayer = manager.PlayerList.get(i);
-                manager.batch.draw(manager.healthback,16+i*72,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
-                manager.batch.draw(curplayer.healthwheel.getAnim(),16+i*72,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+                manager.batch.draw(manager.healthback,16+i*72*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+                manager.batch.draw(curplayer.healthwheel.getAnim(),16+i*72*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
             }
 
         if(manager.countopen < 0.875) {

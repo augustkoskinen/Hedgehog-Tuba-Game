@@ -10,6 +10,9 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.google.gwt.core.client.JsonUtils;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 
 import java.util.ArrayList;
 
@@ -73,8 +76,7 @@ public class ChooseScreen implements Screen {
         }
         if(Gdx.input.isKeyPressed(Input.Keys.F)&&Gdx.input.isKeyPressed(Input.Keys.G)&&!manager.keyboardtaken){
             manager.keyboardtaken = true;
-            manager.PlayerList.add(new OfflineManager.Player(new Vector3(),0));
-            chosencolors.add(1);
+            manager.PlayerList.add(new OfflineManager.Player(new Vector3(),0,chosencolors));
             manager.numplayers++;
             manager.addShake(.4f);
         }
@@ -186,8 +188,9 @@ public class ChooseScreen implements Screen {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
                             }
-                            if (!chosencolors.contains(skin))
+                            if (!chosencolors.contains(skin)) {
                                 chosencolors.add(skin);
+                            }
                         }
                         if (manager.PlayerList.get(i).pressleft && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = manager.PlayerList.get(i).skintype == 1 ? 5 : manager.PlayerList.get(i).skintype - 1;

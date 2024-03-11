@@ -88,7 +88,6 @@ public class OfflineManager implements Screen {
 		}
 	}
 
-
 	@Override
 	public void show() {
 		ChooseScreen newscreen = new ChooseScreen(this, game);
@@ -384,12 +383,22 @@ public class OfflineManager implements Screen {
 		public boolean releaseleft = false;
 		public float deadcount = 0;
 
-		public Player(Vector3 pos, int type) {
+		public Player(Vector3 pos, int type, ArrayList<Integer> colors) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			controltype = type;
+
+			if(colors.contains(this.skintype)) {
+				int i = 1;
+				while (colors.contains(i)) {
+					i++;
+				}
+				this.skintype = i;
+			}
+
+			colors.add(this.skintype);
 
 			if(Controllers.getControllers().size==0) controltype = 0;
 			if(controltype==1) {
@@ -403,6 +412,7 @@ public class OfflineManager implements Screen {
 			movevect = new Vector3();
 			controltype = type;
 			this.skintype = skintype;
+
 			if(colors.contains(this.skintype)) {
 				int i = 1;
 				while (colors.contains(i)) {
@@ -500,7 +510,7 @@ public class OfflineManager implements Screen {
 								break;
 							}
 						}
-						PoofCloudList.add(new PoofCloud(degree, new Vector3(sprite.x + 4, sprite.y + 4, 0)));
+						PoofCloudList.add(new PoofCloud(degree, new Vector3(sprite.x, sprite.y, 0)));
 						jumpcount--;
 						if (jumpdiradd == 0) {
 							jumpdiradd = movedir * turnfactor;

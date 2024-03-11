@@ -14,6 +14,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 
 import com.google.gwt.core.client.JsonUtils;
+import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
@@ -22,7 +23,6 @@ import com.github.czyzby.websocket.WebSocket;
 import com.github.czyzby.websocket.WebSockets;
 
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Random;
 
 import static java.lang.Float.parseFloat;
@@ -31,6 +31,8 @@ public class OnlineManager implements Screen {
 	//world vars
 	SpriteBatch batch;
 	public MainMenuScreen game;
+	public static WebSocket socket;
+	public String id;
 	public static final int TILE_WIDTH = 16;
 	public static final int WORLD_WIDTH = 46;
 	public static final int WORLD_HEIGHT = 26;
@@ -39,39 +41,35 @@ public class OnlineManager implements Screen {
 	public static float WIND_HEIGHT = 576;
 	public static float CHANGE_RATIO = 1;
 	public static float SLOWSPEED = 1;
-	public static int[][] WORLD_MAP = FrameworkMO.getMap();
+	public static int[][] WORLD_MAP;
 	public String launcher;
-	private FrameworkMO.AnimationSet openbattle;
+	public FrameworkMO.AnimationSet openbattle;
 	public static float countopen = 0.875f;
 	public static OrthographicCamera gamecam  = null;
 	public static boolean gamestarted = false;
-	private Texture healthback;
-	private float waitstart = 0;
-	private FrameworkMO.AnimationSet startanim;
+	public Texture healthback;
+	public float waitstart = 0;
+	public FrameworkMO.AnimationSet startanim;
 
 	//player
-	public static int numplayers = 0;
 	public static final float GRAVITY = 0.25f*MULT_AMOUNT;
 	public static final float WALK_SPEED = 2*MULT_AMOUNT;
 	public static final float JUMP_SPEED = 5.2f*MULT_AMOUNT;
-
 	//ArrayLists
-	public ArrayList<Rectangle> CollisionList;
 	public static ArrayList<PoofCloud> PoofCloudList;
 	public static ArrayList<Bullet> BulletList;
-	public static ArrayList<Monster> MonsterList = new ArrayList<>();
 	public static ArrayList<Player> PlayerList = new ArrayList<>();
 	public static ArrayList<Player> DeletedPlayerList = new ArrayList<>();
-	public static ArrayList<Controller> ControllerList = new ArrayList<>();
-	public static boolean keyboardtaken = false;
+	public static Random seed;
 	public static boolean pause = true;
-	private static boolean shake = false;
-	private static float shaketime = 0.7f;
+	public static boolean shake = false;
+	public static boolean serverready = false;
+	public static float shaketime = 0;
 	public static Vector3 loadjiggle = new Vector3();
 	//main
 	public OnlineManager(MainMenuScreen game, String str) {
 		launcher = str;
-		CollisionList = new ArrayList<>();
+		this.game = game;
 		PoofCloudList = new ArrayList<>();
 		BulletList = new ArrayList<>();
 
@@ -87,13 +85,13 @@ public class OnlineManager implements Screen {
 			CHANGE_RATIO = Gdx.graphics.getWidth()/1024f;
 		}
 
-		//start
-		//this.setScreen(new ChooseScreen(this));
+		socket = configSocket();
 	}
 
 	@Override
 	public void show() {
-
+		ChooseScreenOnline newscreen = new ChooseScreenOnline(this, game);
+		game.setScreen(newscreen);
 	}
 
 	@Override
@@ -101,7 +99,7 @@ public class OnlineManager implements Screen {
 		batch.begin();
 
 		if(gamestarted)
-			for(int i =0; i<numplayers;i++) {
+			for(int i =0; i<PlayerList.size();i++) {
 				Player curplayer = PlayerList.get(i);
 				batch.draw(healthback,16+i*72,WIND_HEIGHT-16-64*CHANGE_RATIO,64*CHANGE_RATIO,64*CHANGE_RATIO);
 				batch.draw(curplayer.healthwheel.getAnim(),16+i*72,WIND_HEIGHT-16-64*CHANGE_RATIO,64*CHANGE_RATIO,64*CHANGE_RATIO);
@@ -122,7 +120,7 @@ public class OnlineManager implements Screen {
 		}
 
 		if(shake)
-			loadjiggle = new Vector3((shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),(shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),0);
+			loadjiggle = new Vector3((shaketime*2)*(seed.nextInt(2)==0 ? 1f : -1f),(shaketime*2)*(seed.nextInt(2)==0 ? 1f : -1f),0);
 
 		if(shaketime>0) shaketime-=Gdx.graphics.getDeltaTime();
 		else {shaketime = .7f; shake = false; loadjiggle = new Vector3();}
@@ -158,6 +156,19 @@ public class OnlineManager implements Screen {
 	public static void addShake(float add) {
 		shake = true;
 		shaketime = add;
+	}
+
+	public void updateShake() {
+		if(shake)
+			loadjiggle = new Vector3((shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),(shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),0);
+
+		if(shaketime>0)
+			shaketime-=Gdx.graphics.getDeltaTime();
+		else {
+			shaketime = .7f;
+			shake = false;
+			loadjiggle = new Vector3();
+		}
 	}
 
 	//=============|
@@ -280,73 +291,6 @@ public class OnlineManager implements Screen {
 		}
 	}
 
-	public static class Monster {
-		private float life = 0;
-		private float dir;
-		private float speed = 1.5f;
-		private Vector3 pos;
-		private Vector3 floatpos = new Vector3(0,2,0);
-		private float floatadd = 0.1f;
-		private FrameworkMO.AnimationSet animr;
-		private FrameworkMO.AnimationSet animl;
-		public Rectangle collision;
-
-		public Monster(Vector3 pos, int type){
-			this.pos = pos;
-			switch (type) {
-				case 0 : {
-					animl = new FrameworkMO.AnimationSet("ghostl.png",2,1,0.5f);
-					animr = new FrameworkMO.AnimationSet("ghostr.png",2,1,0.5f);
-					life = 5;
-					collision = new Rectangle(pos.x,pos.y,64,64);
-
-					break;
-				}
-			}
-		}
-		public FrameworkMO.TextureSet updateTime(Vector3 aimpos) {
-			dir = (float) Math.toDegrees(MovementMath.pointDir(new Vector3(pos.x+32,pos.y+32,0), new Vector3(aimpos.x+8,aimpos.y+8, 0)));
-			float dis = MovementMath.pointDis(new Vector3(pos.x+32,pos.y+32,0), new Vector3(aimpos.x+8,aimpos.y+8, 0));
-
-			Vector3 addvect;
-			if(dis>96)
-				addvect = MovementMath.lengthDir((float)Math.toRadians(dir),speed*Gdx.graphics.getDeltaTime()*MULT_AMOUNT).add(floatpos);
-			else
-				addvect = MovementMath.lengthDir((float)Math.toRadians(dir+85),speed*Gdx.graphics.getDeltaTime()*MULT_AMOUNT).add(floatpos);
-
-			if(!pause) {
-				pos = new Vector3(pos.x + addvect.x * SLOWSPEED, pos.y + addvect.y * SLOWSPEED, 0);
-				collision.x += addvect.x * SLOWSPEED;
-				collision.y += addvect.y * SLOWSPEED;
-			}
-
-			if(life < 0) {
-				MonsterList.remove(this);
-				return null;
-			}
-
-			floatpos.y+=floatadd;
-			if(floatpos.y>2&&floatadd == 0.1f) {
-				floatadd = -0.1f;
-			}
-			if(floatpos.y<-2&&floatadd == -0.1f) {
-				floatadd = 0.1f;
-			}
-
-			if(!pause)
-				return dir<-90||dir>90 ? new FrameworkMO.TextureSet(animl.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90)) : new FrameworkMO.TextureSet(animr.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90));
-			else
-				return dir<-90||dir>90 ? new FrameworkMO.TextureSet(animl.updateTime(SLOWSPEED),pos.x,pos.y,100000,(float)Math.toRadians(dir-90)) : new FrameworkMO.TextureSet(animr.getAnim(),pos.x,pos.y,100000,(float)Math.toRadians(dir-90));
-		}
-
-		public void takeDamage() {
-			life--;
-			if(life<=0) {
-				MonsterList.remove(this);
-			}
-		}
-	}
-
 	public static class Player {
 		public int health = 8;
 		public FrameworkMO.AnimationSet healthwheel;
@@ -365,7 +309,7 @@ public class OnlineManager implements Screen {
 		public int skintype = 1;
 		public int prevskintype = 1;
 		public Controller controller;
-		public boolean chosechar = false;
+		public boolean ready = false;
 		public boolean firebutton = false;
 		public boolean jumpbutton = false;
 		public boolean firebuttonrelease = false;
@@ -375,25 +319,28 @@ public class OnlineManager implements Screen {
 		public boolean releaseright = false;
 		public boolean releaseleft = false;
 		public float deadcount = 0;
+		public String socketid;
 
-		public Player(Vector3 pos, int type) {
+		public Player(Vector3 pos, int type, String socketid) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
+			this.socketid = socketid;
 			controltype = type;
 
-			if(Controllers.getControllers().size==0) controltype = 0;
+			if(Controllers.getControllers().size==0&&type!=-1) controltype = 0;
 			if(controltype==1) {
 				controller = Controllers.getControllers().get(0);
 			}
 		}
-		public Player(Vector3 pos, int type, Controller controller,int skintype, ArrayList<Integer> colors) {
+		public Player(Vector3 pos, int type, Controller controller, int skintype, ArrayList<Integer> colors, String socketid) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			controltype = type;
+			this.socketid = socketid;
 			this.skintype = skintype;
 			if(colors.contains(this.skintype)) {
 				int i = 1;
@@ -417,10 +364,11 @@ public class OnlineManager implements Screen {
 			int netmove = (rightmove-leftmove);
 			Rectangle playercol = MovementMath.DuplicateRect(sprite.collision);
 			playertext = new TextureRegion(new Texture("p"+skintype+"body.png"));
+			boolean jumped = ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&& jumpcount > 0);
 
 			if(!pause) {
 				SLOWSPEED = 1;
-				if (numplayers == 1 && (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
+				if (PlayerList.size() == 1 && (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
 					SLOWSPEED = 0.25f;
 				}
 
@@ -440,7 +388,7 @@ public class OnlineManager implements Screen {
 				boolean wallsliding = ((MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(1, 0, 0), new Vector3(15, 15, 0)) && rightmove == 1) || (MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(-1, 0, 0), new Vector3(15, 15, 0)) && leftmove == 1));
 				if (grounded) jumpcount = 5;
 
-				if ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&& jumpcount > 0) {
+				if (jumped) {
 					int degree = MovementMath.toDegrees(controller);
 					if (degree != -1) {
 						float movex = 0;
@@ -557,7 +505,20 @@ public class OnlineManager implements Screen {
 				if (sprite.getPosition().x < -16) sprite.setPosition(WORLD_WIDTH * TILE_WIDTH + 16, sprite.y);
 				if (sprite.getPosition().x > WORLD_WIDTH * TILE_WIDTH + 16) sprite.setPosition(-16, sprite.y);
 			}
+
+			JSONObject senddata = new JSONObject();
+			senddata.put("event", new JSONString("updatePos"));
+			senddata.put("x",new JSONString(sprite.x+""));
+			senddata.put("y",new JSONString(sprite.y+""));
+			senddata.put("rot",new JSONString(moverot+""));
+			senddata.put("dead",new JSONString((deadcount>0)+""));
+			senddata.put("jumped",new JSONString((jumped)+""));
+			socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
+
 			return playertext;
+		}
+		public TextureRegion getPlayerText(){
+			return new TextureRegion(new Texture("p"+skintype+"body.png"));
 		}
 
 		public FrameworkMO.TextureSet getEyeText() {
@@ -608,7 +569,6 @@ public class OnlineManager implements Screen {
 			if(health<=0) {
 				PlayerList.remove(this);
 				DeletedPlayerList.add(this);
-				numplayers--;
 				addShake(0.6f);
 				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-12,sprite.y-12,0),1));
 			}
@@ -619,17 +579,16 @@ public class OnlineManager implements Screen {
 				DeletedPlayerList.remove(this);
 				PlayerList.add(this);
 				health = 8;
-				numplayers++;
 				healthwheel.time = 0;
 				deadcount = 0;
 				movevect = new Vector3();
 
 				float addx = 160;
 				float addy = 80;
-				if((int)(Math.random()*2)==0) {
+				if(seed.nextInt(2)==0) {
 					addx = WORLD_WIDTH*TILE_WIDTH - 160;
 				}
-				if((int)(Math.random()*2)==0) {
+				if(seed.nextInt(2)==0) {
 					addy = WORLD_HEIGHT*TILE_WIDTH - 80;
 				}
 				sprite.setPosition(addx,addy);
@@ -643,10 +602,10 @@ public class OnlineManager implements Screen {
 	}
 
 	public WebSocket configSocket() {
-		//localhost: ws://localhost:8080
+		//localhost: ws://localhost:8070
 		//graham server: wss://game2.ejenda.org
 
-		WebSocket holdsocket = WebSockets.newSocket("wss://game.grahamsh.com");
+		WebSocket holdsocket = WebSockets.newSocket("ws://localhost:8090");
 		holdsocket.setSendGracefully(true);
 		holdsocket.addListener(new WebSocketListener() {
 			@Override
@@ -663,24 +622,77 @@ public class OnlineManager implements Screen {
 
 			@Override
 			public boolean onMessage(WebSocket webSocket, String packet) {
-				//gathers data
 				JSONObject data = JSONParser.parse(packet).isObject();
 				String event = data.get("event").isString().stringValue();
-				//Gdx.app.log("Log", "Packet Message: " + data);
+				Gdx.app.log("Log", "Packet Message: " + data);
 
-				//goes through event list
-				if (event.equals("socketID")) {
-					//sets up vars for id and room
-					//myid = data.get("id").isString().stringValue();
-					//game.myroom = data.get("room").isString().stringValue();
-					//Gdx.app.log("Websocket", "My ID: " + myid);
+				if (event.equals("setWS")) {
+					seed = new Random((long)data.get("seed").isNumber().doubleValue());
+					WORLD_MAP = FrameworkMO.getMap(seed);
+					id = data.get("id").isString().stringValue();
+					JSONArray playerarray = data.get("playerlist").isArray();
+					for(int i = 0; i<playerarray.size();i++) {
+						System.out.println(playerarray);
+						PlayerList.add(new OnlineManager.Player(
+							new Vector3((float)(playerarray.get(i).isObject().get("x").isNumber().doubleValue()),(float)(playerarray.get(i).isObject().get("y").isNumber().doubleValue()),0),
+							-1,
+							playerarray.get(i).isObject().get("id").isString().stringValue()
+						));
+						PlayerList.get(PlayerList.size()-1).skintype = (int)(playerarray.get(i).isObject().get("skin").isNumber().doubleValue());
+						PlayerList.get(PlayerList.size()-1).ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
+					}
+				}
+
+				if (event.equals("joinPlayer")) {
+					PlayerList.add(new OnlineManager.Player(
+						new Vector3((float)(data.get("player").isObject().get("x").isNumber().doubleValue()),(float)(data.get("player").isObject().get("y").isNumber().doubleValue()),0),
+						-1,
+						data.get("player").isObject().get("id").isString().stringValue()
+					));
+				}
+
+				if (event.equals("startGame")) {
+					addShake(.4f);
+					if(PlayerList.size()>0)
+						serverready = true;
+				}
+
+				if (event.equals("updateOtherSkin")) {
+					Player targetplayer = PlayerList.get(findPlayer(data.get("id").isString().stringValue()));
+					targetplayer.skintype = (int)(data.get("skin").isNumber().doubleValue());
+				}
+
+				if (event.equals("updateOtherReady")) {
+					Player targetplayer = PlayerList.get(findPlayer(data.get("id").isString().stringValue()));
+					if(!targetplayer.ready&&data.get("ready").isBoolean().booleanValue())
+						addShake(.4f);
+					targetplayer.ready = data.get("ready").isBoolean().booleanValue();
+				}
+
+				if (event.equals("updateOtherPos")) {
+					JSONObject playerobj = data.get("player").isObject();
+					Player targetplayer = PlayerList.get(findPlayer(playerobj.get("id").isString().stringValue()));
+					targetplayer.sprite.setPosition((float) (playerobj.get("x").isNumber().doubleValue()),(float) (playerobj.get("y").isNumber().doubleValue()));
+					targetplayer.moverot = (float)(playerobj.get("rot").isNumber().doubleValue());
+
+					if(data.get("deadcloud").isBoolean().booleanValue()){
+						Vector3 pos = targetplayer.sprite.getPosition();
+						PoofCloudList.add(new PoofCloud(targetplayer.movedir-180,new Vector3(pos.x-12,pos.y-12,0),1));
+					} else if(data.get("jumpcloud").isBoolean().booleanValue()) {
+						Vector3 pos = targetplayer.sprite.getPosition();
+						PoofCloudList.add(new PoofCloud(targetplayer.movedir-180,new Vector3(pos.x+4,pos.y+4,0)));
+					}
+				}
+
+				if (event.equals("leavePlayer")) {
+					PlayerList.remove(PlayerList.get(findPlayer(data.get("player").isObject().get("id").isString().stringValue())));
 				}
 				return false;
 			}
 
 			@Override
 			public boolean onMessage(WebSocket webSocket, byte[] packet) {
-				//Gdx.app.log("Log", "Byte Message: ");
+				Gdx.app.log("Log", "Byte Message: ");
 				return false;
 			}
 
@@ -693,5 +705,12 @@ public class OnlineManager implements Screen {
 
 		holdsocket.connect();
 		return holdsocket;
+	}
+
+	public int findPlayer(String wsstring){
+		for(int i = 0; i< PlayerList.size();i++)
+			if(PlayerList.get(i).socketid.equals(wsstring))
+				return i;
+		return -1;
 	}
 }
