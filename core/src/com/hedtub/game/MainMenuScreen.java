@@ -65,14 +65,14 @@ public class MainMenuScreen extends Game {
 		if(!setupgame) {
 			batch.begin();
 			batch.draw(background, 0, 0, 1024*RATIO_X, 576*RATIO_Y);
-			if (MovementMath.pointDis(new Vector3(384 * RATIO_X, 288* RATIO_Y, 0f), new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f)) < 64f * RATIO_X) {
+			if (MovementMath.pointDis(new Vector3(384 * (Gdx.graphics.getWidth() / 1024f), 288 * (Gdx.graphics.getHeight() / 576f), 0f), new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f)) < 64f * (Gdx.graphics.getWidth() / 1024f)) {
 				batch.draw(offbuttonhover, (448 - 128)* RATIO_X, 224* RATIO_Y, 128 * RATIO_X, 128* RATIO_Y);
 				if (Gdx.input.isTouched())
 					chosegame = 1;
 			} else {
 				batch.draw(offbutton, (448 - 128)* RATIO_X, 224* RATIO_Y, 128* RATIO_X, 128* RATIO_Y);
 			}
-			if (MovementMath.pointDis(new Vector3(640 * RATIO_X, 288* RATIO_Y, 0f), new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f)) < 64f * RATIO_X) {
+			if (MovementMath.pointDis(new Vector3(640 * (Gdx.graphics.getWidth() / 1024f), 288 * (Gdx.graphics.getHeight() / 576f), 0f), new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f)) < 64f * (Gdx.graphics.getWidth() / 1024f)) {
 				batch.draw(onbuttonhover, (448 + 128) * RATIO_X, 224* RATIO_Y, 128 * RATIO_X, 128* RATIO_Y);
 				if (Gdx.input.isTouched())
 					chosegame = 2;

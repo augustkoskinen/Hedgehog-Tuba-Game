@@ -40,7 +40,9 @@ public class GameScreenOnline implements Screen {
             manager.PlayerList.get(i).sprite.setPosition(addx,addy);
         }
 
-        player = manager.PlayerList.get(0);
+        int playeri = manager.PlayerList.indexOf(manager.mainplayer);
+        if(playeri!=-1)
+            player = manager.PlayerList.get(playeri);
 
         batch = new SpriteBatch();
 
@@ -69,15 +71,21 @@ public class GameScreenOnline implements Screen {
 
     @Override
     public void render(float delta) {
+        int mainplayeri = manager.PlayerList.indexOf(manager.mainplayer);
+        if(mainplayeri!=-1)
+            player = manager.PlayerList.get(mainplayeri);
+
         //clears screen
         ScreenUtils.clear(0, 0, 0, 1, true);
 
-        Vector3 movecampos = manager.PlayerList.get(0).sprite.getPosition();
+        Vector3 movecampos = manager.mainplayer.sprite.getPosition();
         float camdis = MovementMath.pointDis(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
         float camdir = MovementMath.pointDir(cam.position, new Vector3(movecampos.x, movecampos.y, 0));
         Vector3 campos = MovementMath.lengthDir(camdir, camdis);
-        cam.position.set(cam.position.x + campos.x * .05f + manager.loadjiggle.x, cam.position.y + campos.y * .05f + manager.loadjiggle.y, 0);
-        cam.zoom = (0.9f);
+        if(manager.PlayerList.contains(manager.mainplayer)) {
+            cam.position.set(cam.position.x + campos.x * .05f + manager.loadjiggle.x, cam.position.y + campos.y * .05f + manager.loadjiggle.y, 0);
+            cam.zoom = (0.9f);
+        }
 
         cam.update();
         batch.setProjectionMatrix(cam.combined);
@@ -90,7 +98,8 @@ public class GameScreenOnline implements Screen {
         for(int i =0; i<manager.PlayerList.size();i++) {
             OnlineManager.Player curplayer = manager.PlayerList.get(i);
             TextureRegion playertext;
-            if(i==0) {
+            int playeri = manager.PlayerList.indexOf(manager.mainplayer);
+            if(playeri==i) {
                 curplayer.updateControls();
                 playertext = curplayer.updatePlayerPos();
             } else {
@@ -142,10 +151,9 @@ public class GameScreenOnline implements Screen {
         //ui
         manager.batch.begin();
         if(manager.gamestarted)
-            for(int i =0; i<manager.PlayerList.size();i++) {
-                OnlineManager.Player curplayer = manager.PlayerList.get(i);
-                manager.batch.draw(manager.healthback,16+i*72*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
-                manager.batch.draw(curplayer.healthwheel.getAnim(),16+i*72*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+            if(manager.PlayerList.contains(manager.mainplayer)) {
+                manager.batch.draw(manager.healthback,16*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
+                manager.batch.draw(manager.mainplayer.healthwheel.getAnim(),16*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);
             }
 
         if(manager.countopen < 0.875) {

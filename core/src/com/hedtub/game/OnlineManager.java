@@ -52,6 +52,7 @@ public class OnlineManager implements Screen {
 	public FrameworkMO.AnimationSet startanim;
 
 	//player
+	public Player mainplayer;
 	public static final float GRAVITY = 0.25f*MULT_AMOUNT;
 	public static final float WALK_SPEED = 2*MULT_AMOUNT;
 	public static final float JUMP_SPEED = 5.2f*MULT_AMOUNT;
@@ -301,6 +302,7 @@ public class OnlineManager implements Screen {
 		public float horzmove;
 		public int movedir = 1;
 		public float lastdir = 1;
+		public boolean mainplayer = false;
 		public int jumpcount = 5;
 		public int jumpdir = 0;
 		public double moverot = 0;
@@ -321,20 +323,21 @@ public class OnlineManager implements Screen {
 		public float deadcount = 0;
 		public String socketid;
 
-		public Player(Vector3 pos, int type, String socketid) {
+		public Player(Vector3 pos, int type, String socketid, boolean mainplayer) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			this.socketid = socketid;
 			controltype = type;
+			this.mainplayer = mainplayer;
 
 			if(Controllers.getControllers().size==0&&type!=-1) controltype = 0;
 			if(controltype==1) {
 				controller = Controllers.getControllers().get(0);
 			}
 		}
-		public Player(Vector3 pos, int type, Controller controller, int skintype, ArrayList<Integer> colors, String socketid) {
+		public Player(Vector3 pos, int type, Controller controller, int skintype, ArrayList<Integer> colors, String socketid, boolean mainplayer) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
@@ -350,6 +353,7 @@ public class OnlineManager implements Screen {
 				this.skintype = i;
 			}
 
+			this.mainplayer = mainplayer;
 			colors.add(this.skintype);
 
 			if(Controllers.getControllers().size==0) controltype = 0;
@@ -359,28 +363,31 @@ public class OnlineManager implements Screen {
 		}
 		public TextureRegion updatePlayerPos(){
 			TextureRegion playertext = null;
-			int rightmove = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.D) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .25) ? 1 : 0;
-			int leftmove = (controltype==0 ? Gdx.input.isKeyPressed(Input.Keys.A) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25) ? 1 : 0;
+			System.out.println(controltype);
+			int rightmove = (controltype==0 ||controller==null? Gdx.input.isKeyPressed(Input.Keys.D) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .25) ? 1 : 0;
+			int leftmove = (controltype==0 ||controller==null? Gdx.input.isKeyPressed(Input.Keys.A) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25) ? 1 : 0;
 			int netmove = (rightmove-leftmove);
 			Rectangle playercol = MovementMath.DuplicateRect(sprite.collision);
 			playertext = new TextureRegion(new Texture("p"+skintype+"body.png"));
-			boolean jumped = ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&& jumpcount > 0);
+			boolean jumped = false;
+
+			boolean justshot = false;
 
 			if(!pause) {
 				SLOWSPEED = 1;
-				if (PlayerList.size() == 1 && (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
+				if (PlayerList.size() == 1 && (controltype == 0||controller==null ? Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) : controller.getButton(controller.getMapping().buttonL1))) {
 					SLOWSPEED = 0.25f;
 				}
 
 				if (netmove != 0) {
-					float movespeed = WALK_SPEED; //(controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? RUN_SPEED :
+					float movespeed = WALK_SPEED; //(controltype == 0||controller==null ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? RUN_SPEED :
 					horzmove = netmove * (movespeed) + movevect.x;
 					horzmove = Math.max(Math.min(movevect.x + horzmove, movespeed), -movespeed) - movevect.x;
 					movedir = rightmove - leftmove;
 				}
 
-				animlw.framereg = (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
-				animrw.framereg = (controltype == 0 ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
+				animlw.framereg = (controltype == 0||controller==null ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
+				animrw.framereg = (controltype == 0||controller==null ? Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) : controller.getButton(controller.getMapping().buttonR1)) ? 0.1f : 0.2f;
 
 				if (movevect.y < 10*MULT_AMOUNT) movevect.y -= GRAVITY*MULT_AMOUNT*Gdx.graphics.getDeltaTime() * SLOWSPEED;
 
@@ -388,7 +395,7 @@ public class OnlineManager implements Screen {
 				boolean wallsliding = ((MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(1, 0, 0), new Vector3(15, 15, 0)) && rightmove == 1) || (MovementMath.CheckCollisions(WORLD_MAP, playercol, 0, new Vector3(-1, 0, 0), new Vector3(15, 15, 0)) && leftmove == 1));
 				if (grounded) jumpcount = 5;
 
-				if (jumped) {
+				if ((controltype == 0||controller==null ? Gdx.input.isKeyJustPressed(Input.Keys.F) : jumpbutton)&& jumpcount > 0) {
 					int degree = MovementMath.toDegrees(controller);
 					if (degree != -1) {
 						float movex = 0;
@@ -440,7 +447,8 @@ public class OnlineManager implements Screen {
 								break;
 							}
 						}
-						PoofCloudList.add(new PoofCloud(degree, new Vector3(sprite.x + 4, sprite.y + 4, 0)));
+						PoofCloudList.add(new PoofCloud(degree, new Vector3(sprite.x, sprite.y, 0)));
+						jumped = true;
 						jumpcount--;
 						if (jumpdiradd == 0) {
 							jumpdiradd = movedir * turnfactor;
@@ -460,16 +468,18 @@ public class OnlineManager implements Screen {
 						}
 						movevect.y = Math.min(movevect.y, 5*MULT_AMOUNT);
 
-						lastdir = degree;
+						if(mainplayer)
+							lastdir = degree;
 					}
 				} else {
 					if (wallsliding) movevect.y = -1*MULT_AMOUNT;
 				}
 
-				if (MovementMath.toDegrees(controller) != -1) lastdir = MovementMath.toDegrees(controller);
+				if (MovementMath.toDegrees(controller) != -1 && mainplayer) lastdir = MovementMath.toDegrees(controller);
 
-				if ((controltype == 0 ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
+				if ((controltype == 0||controller==null ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
 					BulletList.add(new Bullet(lastdir + 180, new Vector3(sprite.x + 4, sprite.y + 4, 0), "p" + skintype + "bullet.png", this));
+					justshot = true;
 				}
 
 				playercol = MovementMath.DuplicateRect(sprite.collision);
@@ -510,9 +520,11 @@ public class OnlineManager implements Screen {
 			senddata.put("event", new JSONString("updatePos"));
 			senddata.put("x",new JSONString(sprite.x+""));
 			senddata.put("y",new JSONString(sprite.y+""));
-			senddata.put("rot",new JSONString(moverot+""));
+			senddata.put("bodyrot",new JSONString(moverot+""));
+			senddata.put("eyerot",new JSONString(lastdir+90+""));
 			senddata.put("dead",new JSONString((deadcount>0)+""));
-			senddata.put("jumped",new JSONString((jumped)+""));
+			senddata.put("jumped",new JSONString(jumped+""));
+			senddata.put("justshot",new JSONString(justshot+""));
 			socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
 
 			return playertext;
@@ -522,15 +534,22 @@ public class OnlineManager implements Screen {
 		}
 
 		public FrameworkMO.TextureSet getEyeText() {
-			Vector3 addpos = MovementMath.lengthDir((float)Math.toRadians(lastdir+90),1.8f);
+			Vector3 addpos;
+			if(mainplayer)
+				addpos = MovementMath.lengthDir((float)Math.toRadians(lastdir+90),1.8f);
+			else
+				addpos = MovementMath.lengthDir((float)Math.toRadians((float)Math.toDegrees(lastdir)),1.8f);
 
 			float xpos = sprite.collision.x +addpos.x;
 			float ypos = sprite.collision.y-0.5f+addpos.y;
 
-			return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians(lastdir+90));
+			if(mainplayer)
+				return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians(lastdir+90));
+			else
+				return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians((float)Math.toDegrees(lastdir)));
 		}
 		public void updateControls() {
-			if(controltype == 1) {
+			if(controltype == 1&&controller!=null) {
 				firebutton = false;
 				jumpbutton = false;
 
@@ -570,7 +589,7 @@ public class OnlineManager implements Screen {
 				PlayerList.remove(this);
 				DeletedPlayerList.add(this);
 				addShake(0.6f);
-				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-12,sprite.y-12,0),1));
+				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-16,sprite.y-16,0),1));
 			}
 		}
 		public void countDead(){
@@ -596,16 +615,11 @@ public class OnlineManager implements Screen {
 		}
 	}
 
-
-	public void setScreen(Screen screen) {
-		this.game.setScreen(screen);
-	}
-
 	public WebSocket configSocket() {
-		//localhost: ws://localhost:8070
+		//localhost: ws://localhost:8090
 		//graham server: wss://hegog.frc.autos
 
-		WebSocket holdsocket = WebSockets.newSocket("ws://hegog.frc.autos");
+		WebSocket holdsocket = WebSockets.newSocket("ws://localhost:8090");
 		holdsocket.setSendGracefully(true);
 		holdsocket.addListener(new WebSocketListener() {
 			@Override
@@ -636,7 +650,8 @@ public class OnlineManager implements Screen {
 						PlayerList.add(new OnlineManager.Player(
 							new Vector3((float)(playerarray.get(i).isObject().get("x").isNumber().doubleValue()),(float)(playerarray.get(i).isObject().get("y").isNumber().doubleValue()),0),
 							-1,
-							playerarray.get(i).isObject().get("id").isString().stringValue()
+							playerarray.get(i).isObject().get("id").isString().stringValue(),
+							false
 						));
 						PlayerList.get(PlayerList.size()-1).skintype = (int)(playerarray.get(i).isObject().get("skin").isNumber().doubleValue());
 						PlayerList.get(PlayerList.size()-1).ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
@@ -647,7 +662,8 @@ public class OnlineManager implements Screen {
 					PlayerList.add(new OnlineManager.Player(
 						new Vector3((float)(data.get("player").isObject().get("x").isNumber().doubleValue()),(float)(data.get("player").isObject().get("y").isNumber().doubleValue()),0),
 						-1,
-						data.get("player").isObject().get("id").isString().stringValue()
+						data.get("player").isObject().get("id").isString().stringValue(),
+						false
 					));
 				}
 
@@ -671,16 +687,27 @@ public class OnlineManager implements Screen {
 
 				if (event.equals("updateOtherPos")) {
 					JSONObject playerobj = data.get("player").isObject();
-					Player targetplayer = PlayerList.get(findPlayer(playerobj.get("id").isString().stringValue()));
-					targetplayer.sprite.setPosition((float) (playerobj.get("x").isNumber().doubleValue()),(float) (playerobj.get("y").isNumber().doubleValue()));
-					targetplayer.moverot = (float)(playerobj.get("rot").isNumber().doubleValue());
+					int targetpi = findPlayer(playerobj.get("id").isString().stringValue());
+					if(targetpi!=-1) {
+						Player targetplayer = PlayerList.get(targetpi);
+						targetplayer.sprite.setPosition((float) (playerobj.get("x").isNumber().doubleValue()), (float) (playerobj.get("y").isNumber().doubleValue()));
+						targetplayer.moverot = (float) (playerobj.get("bodyrot").isNumber().doubleValue());
+						targetplayer.lastdir = (float) Math.toRadians(playerobj.get("eyerot").isNumber().doubleValue());
 
-					if(data.get("deadcloud").isBoolean().booleanValue()){
-						Vector3 pos = targetplayer.sprite.getPosition();
-						PoofCloudList.add(new PoofCloud(targetplayer.movedir-180,new Vector3(pos.x-12,pos.y-12,0),1));
-					} else if(data.get("jumpcloud").isBoolean().booleanValue()) {
-						Vector3 pos = targetplayer.sprite.getPosition();
-						PoofCloudList.add(new PoofCloud(targetplayer.movedir-180,new Vector3(pos.x+4,pos.y+4,0)));
+						if (data.get("deadcloud").isBoolean().booleanValue()&&!pause) {
+							Vector3 pos = targetplayer.sprite.getPosition();
+							PoofCloudList.add(new PoofCloud((float) Math.toDegrees(targetplayer.lastdir) - 90, new Vector3(pos.x - 16, pos.y - 16, 0), 1));
+						}
+
+						if (data.get("jumpcloud").isBoolean().booleanValue()&&!pause) {
+							Vector3 pos = targetplayer.sprite.getPosition();
+							PoofCloudList.add(new PoofCloud((float) Math.toDegrees(targetplayer.lastdir) - 90, new Vector3(pos.x, pos.y, 0), 0));
+						}
+
+						if (playerobj.get("justshot").isBoolean().booleanValue()&&!pause) {
+							Vector3 pos = targetplayer.sprite.getPosition();
+							BulletList.add(new Bullet((float) Math.toDegrees(targetplayer.lastdir) + 90, new Vector3(pos.x + 4, pos.y + 4, 0), "p" + targetplayer.skintype + "bullet.png", targetplayer));
+						}
 					}
 				}
 

@@ -26,7 +26,7 @@ wss.on('connection', function connection(ws) {
     playerlist.push(player);
 
     for(let i = 0; i<playerlist.length;i++) {
-        if(i!=playeri)
+        if(i!=playeri&&!playerlist[i].ingame)
             playerlist[i].ws.send(JSON.stringify({
                 event: 'joinPlayer',
                 player : player.getSendable()
@@ -41,14 +41,16 @@ wss.on('connection', function connection(ws) {
                 playerlist[playeri].ready = true;
                 start = playerlist.length>1;
                 for(let i = 0; i < playerlist.length; i++)
-                    if(!playerlist[i].ready)
+                    if(!playerlist[i].ready&&!playerlist[i].ingame)
                         start = false;
 
                 if(start) {
-                    for(let i = 0; i < playerlist.length; i++)
+                    for(let i = 0; i < playerlist.length; i++) {
                         playerlist[i].ws.send(JSON.stringify({
                             event: 'startGame'
                         }));
+                        playerlist[i].ingame;
+                    }
                 }
 
                 for(let i = 0; i < playerlist.length; i++)
@@ -63,7 +65,7 @@ wss.on('connection', function connection(ws) {
             case "updateSkin" : {
                 playerlist[playeri].skin = parseInt(data.skin);
                 for(let i = 0; i < playerlist.length; i++)
-                    if(i!=playeri)
+                    if(i!=playeri&&!playerlist[i].ingame)
                         playerlist[i].ws.send(JSON.stringify({
                             event : "updateOtherSkin",
                             id : id,
@@ -74,7 +76,7 @@ wss.on('connection', function connection(ws) {
             case "unReadyPlayer" : {
                 playerlist[playeri].ready = false;
                 for(let i = 0; i < playerlist.length; i++)
-                    if(i!=playeri)
+                    if(i!=playeri&&!playerlist[i].ingame)
                         playerlist[i].ws.send(JSON.stringify({
                             event : "updateOtherReady",
                             id : id,
@@ -85,11 +87,13 @@ wss.on('connection', function connection(ws) {
             case "updatePos" : {
                 playerlist[playeri].x = parseFloat(data.x);
                 playerlist[playeri].y = parseFloat(data.y);
-                playerlist[playeri].rot = parseFloat(data.rot);
-                let playerdead = data.dead&&!playerlist[playeri].dead;
-                playerlist[playeri].dead = data.dead;
-                let playerjumped = data.jumped&&!playerlist[playeri].jumped;
-                playerlist[playeri].jumped = data.jumped;
+                playerlist[playeri].eyerot = parseFloat(data.eyerot);
+                playerlist[playeri].bodyrot = parseFloat(data.bodyrot);
+                playerlist[playeri].justshot = data.justshot=='true';
+                let playerdead = data.dead&&playerlist[playeri].dead;
+                playerlist[playeri].dead = data.dead=='true';
+                let playerjumped = data.jumped&&playerlist[playeri].jumped;
+                playerlist[playeri].jumped = data.jumped=='true';
                 let senddata = {
                     event : "updateOtherPos",
                     player : player.getSendable(),
@@ -129,8 +133,11 @@ class Player {
     id = '';
     x = 0;
     y = 0;
-    rot = 0;
+    bodyrot = 0;
+    eyerot = 0;
     dead = false;
+    justshot = false;
+    ingame = false;
     jumped = false;
     skin = 1;
     ready = false;
@@ -151,7 +158,9 @@ class Player {
             y: this.y,
             name: this.name,
             dead: this.dead,
-            rot: this.rot,
+            bodyrot: this.bodyrot,
+            eyerot: this.eyerot,
+            justshot: this.justshot,
             id: this.id,
             skin: this.skin,
             jumped: this.jumped,

@@ -44,10 +44,12 @@ public class ChooseScreenOnline implements Screen {
         this.manager = manager;
 
         if(Controllers.getControllers().size>0){
-            manager.PlayerList.add(new OnlineManager.Player(new Vector3(),1,Controllers.getControllers().get(0),1,chosencolors,manager.socket.toString()));
+            manager.mainplayer = new OnlineManager.Player(new Vector3(),1,Controllers.getControllers().get(0),1,chosencolors,manager.socket.toString(),true);
+            manager.PlayerList.add(manager.mainplayer);
             manager.addShake(.4f);
         } else {
-            manager.PlayerList.add(new OnlineManager.Player(new Vector3(),0,manager.socket.toString()));
+            manager.mainplayer = new OnlineManager.Player(new Vector3(),0,manager.socket.toString(),true);
+            manager.PlayerList.add(manager.mainplayer);
             manager.addShake(.4f);
         }
 
@@ -146,20 +148,15 @@ public class ChooseScreenOnline implements Screen {
                     if(!manager.PlayerList.get(i).ready&&i==0) {
                         if (Gdx.input.isKeyJustPressed(Input.Keys.D) && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = (manager.PlayerList.get(i).skintype == 5 ? 1 : manager.PlayerList.get(i).skintype + 1);
-                            while(chosencolors.contains(skin))
-                                skin = (skin == 5 ? 1 : skin + 1);
                             ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
                             }
-                            if (!chosencolors.contains(skin)) {
-                                chosencolors.add(skin);
-                                JSONObject senddata = new JSONObject();
-                                senddata.put("event", new JSONString("updateSkin"));
-                                senddata.put("skin", new JSONString(skin + ""));
-                                manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
-                            }
+                            JSONObject senddata = new JSONObject();
+                            senddata.put("event", new JSONString("updateSkin"));
+                            senddata.put("skin", new JSONString(skin + ""));
+                            manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
                         }
                         if (Gdx.input.isKeyJustPressed(Input.Keys.A) && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = manager.PlayerList.get(i).skintype == 1 ? 5 : manager.PlayerList.get(i).skintype - 1;
@@ -170,13 +167,10 @@ public class ChooseScreenOnline implements Screen {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
                             }
-                            if (!chosencolors.contains(skin)) {
-                                chosencolors.add(skin);
-                                JSONObject senddata = new JSONObject();
-                                senddata.put("event", new JSONString("updateSkin"));
-                                senddata.put("skin", new JSONString(skin + ""));
-                                manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
-                            }
+                            JSONObject senddata = new JSONObject();
+                            senddata.put("event", new JSONString("updateSkin"));
+                            senddata.put("skin", new JSONString(skin + ""));
+                            manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
                         }
                     }
                 } else if(manager.PlayerList.get(i).controltype==1) {
@@ -205,20 +199,15 @@ public class ChooseScreenOnline implements Screen {
                     if(!manager.PlayerList.get(i).ready&&i==0) {
                         if (manager.PlayerList.get(i).pressright && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = (manager.PlayerList.get(i).skintype == 5 ? 1 : manager.PlayerList.get(i).skintype + 1);
-                            while(chosencolors.contains(skin))
-                                skin = (skin == 5 ? 1 : skin + 1);
                             ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
                             }
-                            if (!chosencolors.contains(skin)) {
-                                chosencolors.add(skin);
-                                JSONObject senddata = new JSONObject();
-                                senddata.put("event", new JSONString("updateSkin"));
-                                senddata.put("skin", new JSONString(skin + ""));
-                                manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
-                            }
+                            JSONObject senddata = new JSONObject();
+                            senddata.put("event", new JSONString("updateSkin"));
+                            senddata.put("skin", new JSONString(skin + ""));
+                            manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
                         }
                         if (manager.PlayerList.get(i).pressleft && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = manager.PlayerList.get(i).skintype == 1 ? 5 : manager.PlayerList.get(i).skintype - 1;
