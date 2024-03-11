@@ -619,7 +619,7 @@ public class OnlineManager implements Screen {
 		//localhost: ws://localhost:8090
 		//graham server: wss://hegog.frc.autos
 
-		WebSocket holdsocket = WebSockets.newSocket("ws://localhost:8090");
+		WebSocket holdsocket = WebSockets.newSocket("wss://hegog.frc.autos");
 		holdsocket.setSendGracefully(true);
 		holdsocket.addListener(new WebSocketListener() {
 			@Override
