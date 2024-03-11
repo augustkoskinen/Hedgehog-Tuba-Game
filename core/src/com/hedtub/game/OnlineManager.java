@@ -603,9 +603,9 @@ public class OnlineManager implements Screen {
 
 	public WebSocket configSocket() {
 		//localhost: ws://localhost:8070
-		//graham server: wss://game2.ejenda.org
+		//graham server: wss://hegog.frc.autos
 
-		WebSocket holdsocket = WebSockets.newSocket("ws://localhost:8090");
+		WebSocket holdsocket = WebSockets.newSocket("ws://hegog.frc.autos");
 		holdsocket.setSendGracefully(true);
 		holdsocket.addListener(new WebSocketListener() {
 			@Override
