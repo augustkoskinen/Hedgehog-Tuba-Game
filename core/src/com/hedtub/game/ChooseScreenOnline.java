@@ -28,6 +28,7 @@ public class ChooseScreenOnline implements Screen {
     private Texture p3;
     private Texture p4;
     private Texture p5;
+    private Texture pghost;
     private Texture controller;
     private Texture chose;
     private Texture keyboard;
@@ -43,16 +44,6 @@ public class ChooseScreenOnline implements Screen {
         this.game = game;
         this.manager = manager;
 
-        if(Controllers.getControllers().size>0){
-            manager.mainplayer = new OnlineManager.Player(new Vector3(),1,Controllers.getControllers().get(0),1,chosencolors,manager.socket.toString(),true);
-            manager.PlayerList.add(manager.mainplayer);
-            manager.addShake(.4f);
-        } else {
-            manager.mainplayer = new OnlineManager.Player(new Vector3(),0,manager.socket.toString(),true);
-            manager.PlayerList.add(manager.mainplayer);
-            manager.addShake(.4f);
-        }
-
         batch = new SpriteBatch();
 
         // cam setup
@@ -66,6 +57,7 @@ public class ChooseScreenOnline implements Screen {
         p3 = new Texture("p3.png");
         p4 = new Texture("p4.png");
         p5 = new Texture("p5.png");
+        pghost = new Texture("pghost.png");
         chose = new Texture("chose.png");
         controller = new Texture("controller.png");
         keyboard = new Texture("keyboard.png");
@@ -73,11 +65,31 @@ public class ChooseScreenOnline implements Screen {
 
     @Override
     public void render(float delta) {
-        if(Controllers.getControllers().size>0){
-            manager.mainplayer = new OnlineManager.Player(new Vector3(),1,Controllers.getControllers().get(0),1,chosencolors,manager.socket.toString(),true);
-            manager.PlayerList.add(manager.mainplayer);
-            manager.addShake(.4f);
+        if (manager.mainplayer == null) {
+            for (int i = 0; i < Controllers.getControllers().size; i++) {
+                Controller controller = Controllers.getControllers().get(i);
+                if (controller.getButton(controller.getMapping().buttonR1) && controller.getButton(controller.getMapping().buttonL1)) {
+                    manager.mainplayer = new OnlineManager.Player(new Vector3(), 1, manager.connectedController.controller, 1, chosencolors, manager.socket.toString(), true);
+                    manager.PlayerList.add(0,manager.mainplayer);
+                    manager.addShake(.4f);
+
+                    JSONObject senddata = new JSONObject();
+                    senddata.put("event", new JSONString("joinedPlayer"));
+                    manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
+                    break;
+                }
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.F) && Gdx.input.isKeyPressed(Input.Keys.G)) {
+                manager.mainplayer = new OnlineManager.Player(new Vector3(), 0, manager.socket.toString(), true);
+                manager.PlayerList.add(0,manager.mainplayer);
+                manager.addShake(.4f);
+
+                JSONObject senddata = new JSONObject();
+                senddata.put("event", new JSONString("joinedPlayer"));
+                manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
+            }
         }
+
         if(manager.serverready)
             loading = true;
         //clears screen
@@ -94,42 +106,42 @@ public class ChooseScreenOnline implements Screen {
         if(floatpos.y<-.5&&floatadd == -0.01f) {
             floatadd = 0.01f;
         }
-        /*
-        JSONObject senddata = new JSONObject();
-        senddata.put("event", new JSONString("sendPlayerName"));
-        manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
-         */
 
         batch.begin();
         if(!loaded) {
             batch.draw(background,cam.viewportWidth/2+manager.loadjiggle.x,cam.viewportHeight/2+manager.loadjiggle.y);
             boolean pressedstart = false;
+            if(manager.mainplayer==null)
+                batch.draw(pghost, cam.viewportWidth / 2 + manager.loadjiggle.x, cam.viewportHeight / 2 + manager.loadjiggle.y);
             for(int i = 0; i < manager.PlayerList.size();i++) {
-                switch(manager.PlayerList.get(i).skintype) {
-                    case 1: {
-                        batch.draw(p1, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
-                        break;
+                if(manager.PlayerList.get(i).joined)
+                    switch(manager.PlayerList.get(i).skintype) {
+                        case 1: {
+                            batch.draw(p1, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                            break;
+                        }
+                        case 2: {
+                            batch.draw(p2, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                            break;
+                        }
+                        case 3: {
+                            batch.draw(p3, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                            break;
+                        }
+                        case 4: {
+                            batch.draw(p4, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                            break;
+                        }
+                        case 5: {
+                            batch.draw(p5, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                            break;
+                        }
                     }
-                    case 2: {
-                        batch.draw(p2, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
-                        break;
-                    }
-                    case 3: {
-                        batch.draw(p3, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
-                        break;
-                    }
-                    case 4: {
-                        batch.draw(p4, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
-                        break;
-                    }
-                    case 5: {
-                        batch.draw(p5, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
-                        break;
-                    }
-                }
+                else
+                    batch.draw(pghost, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
 
                 if(manager.PlayerList.get(i).controltype==0) {
-                    batch.draw(keyboard,cam.viewportWidth/2+6+manager.loadjiggle.x+33*i,cam.viewportHeight/2+manager.loadjiggle.y,24,24);
+                    batch.draw(keyboard,cam.viewportWidth/2+6+manager.loadjiggle.x+33*(i+(manager.mainplayer == null ? 1 : 0)),cam.viewportHeight/2+manager.loadjiggle.y,24,24);
 
                     if(Gdx.input.isKeyJustPressed(Input.Keys.F)&&i==0) {
                         if(manager.PlayerList.get(i).ready) pressedstart = true;
@@ -153,7 +165,7 @@ public class ChooseScreenOnline implements Screen {
                     if(!manager.PlayerList.get(i).ready&&i==0) {
                         if (Gdx.input.isKeyJustPressed(Input.Keys.D) && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = (manager.PlayerList.get(i).skintype == 5 ? 1 : manager.PlayerList.get(i).skintype + 1);
-                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
+                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
@@ -167,7 +179,7 @@ public class ChooseScreenOnline implements Screen {
                             int skin = manager.PlayerList.get(i).skintype == 1 ? 5 : manager.PlayerList.get(i).skintype - 1;
                             while(chosencolors.contains(skin))
                                 skin = (skin == 1 ? 5 : skin - 1);
-                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
+                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
@@ -180,7 +192,7 @@ public class ChooseScreenOnline implements Screen {
                     }
                 } else if(manager.PlayerList.get(i).controltype==1) {
                     manager.PlayerList.get(i).updateControls();
-                    batch.draw(this.controller,cam.viewportWidth/2+6+manager.loadjiggle.x+33*i,cam.viewportHeight/2+manager.loadjiggle.y,24,24);
+                    batch.draw(this.controller,cam.viewportWidth/2+6+manager.loadjiggle.x+33*(i+(manager.mainplayer == null ? 1 : 0)),cam.viewportHeight/2+manager.loadjiggle.y,24,24);
 
                     if(manager.PlayerList.get(i).firebutton&&i==0) {
                         if(manager.PlayerList.get(i).ready) pressedstart = true;
@@ -204,7 +216,7 @@ public class ChooseScreenOnline implements Screen {
                     if(!manager.PlayerList.get(i).ready&&i==0) {
                         if (manager.PlayerList.get(i).pressright && !ChooseList.contains(manager.PlayerList.get(i))) {
                             int skin = (manager.PlayerList.get(i).skintype == 5 ? 1 : manager.PlayerList.get(i).skintype + 1);
-                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
+                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
@@ -218,7 +230,7 @@ public class ChooseScreenOnline implements Screen {
                             int skin = manager.PlayerList.get(i).skintype == 1 ? 5 : manager.PlayerList.get(i).skintype - 1;
                             while(chosencolors.contains(skin))
                                 skin = (skin == 1 ? 5 : skin - 1);
-                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * i, cam.viewportHeight / 2, 0)));
+                            ChooseList.add(new ChooseSkin(skin, manager.PlayerList.get(i), new Vector3(cam.viewportWidth / 2 + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2, 0)));
                             if(chosencolors.contains(manager.PlayerList.get(i).prevskintype)) {
                                 chosencolors.remove(chosencolors.indexOf(manager.PlayerList.get(i).prevskintype));
                                 manager.PlayerList.get(i).prevskintype = skin;
@@ -233,8 +245,18 @@ public class ChooseScreenOnline implements Screen {
                         }
                     }
                 }
+
                 if(manager.PlayerList.get(i).ready) {
-                    batch.draw(chose, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * i, cam.viewportHeight / 2 + manager.loadjiggle.y);
+                    batch.draw(chose, cam.viewportWidth / 2 + manager.loadjiggle.x + 33 * (i+(manager.mainplayer == null ? 1 : 0)), cam.viewportHeight / 2 + manager.loadjiggle.y);
+                    if(manager.PlayerList.get(i).equals(manager.mainplayer)) {
+                        JSONObject senddata = new JSONObject();
+                        senddata.put("event", new JSONString("readyPlayer"));
+                        manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
+                    }
+                } else if(manager.PlayerList.get(i).equals(manager.mainplayer)) {
+                    JSONObject senddata = new JSONObject();
+                    senddata.put("event", new JSONString("unReadyPlayer"));
+                    manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
                 }
             }
 

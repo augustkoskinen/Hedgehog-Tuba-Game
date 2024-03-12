@@ -4,6 +4,7 @@ import { WebSocketServer } from 'ws';
 const wss = new WebSocketServer({ port: 8090 });
 let playerlist = [];
 let start = false;
+let startedgame = false;
 let seed = Math.floor(Math.random() * 10000)
 
 console.log("Server is running...")
@@ -44,12 +45,13 @@ wss.on('connection', function connection(ws) {
                     if(!playerlist[i].ready&&!playerlist[i].ingame)
                         start = false;
 
-                if(start) {
+                if(start&&!startedgame) {
                     for(let i = 0; i < playerlist.length; i++) {
                         playerlist[i].ws.send(JSON.stringify({
                             event: 'startGame'
                         }));
-                        playerlist[i].ingame;
+                        playerlist[i].ingame = true;
+                        startedgame = true;
                     }
                 }
 
@@ -81,6 +83,17 @@ wss.on('connection', function connection(ws) {
                             event : "updateOtherReady",
                             id : id,
                             ready : false
+                        }));
+                break;
+            }
+            case "joinedPlayer" : {
+                playerlist[playeri].joined = true;
+                for(let i = 0; i < playerlist.length; i++)
+                    if(i!=playeri&&!playerlist[i].ingame)
+                        playerlist[i].ws.send(JSON.stringify({
+                            event : "updateOtherJoined",
+                            id : id,
+                            joined : true
                         }));
                 break;
             }
@@ -141,6 +154,7 @@ class Player {
     jumped = false;
     skin = 1;
     ready = false;
+    joined = false;
     name = '';
     constructor(ws, x, y) {
         this.ws = ws;
@@ -161,10 +175,12 @@ class Player {
             bodyrot: this.bodyrot,
             eyerot: this.eyerot,
             justshot: this.justshot,
+            ingame: this.ingame,
             id: this.id,
             skin: this.skin,
             jumped: this.jumped,
-            ready: this.ready
+            ready: this.ready,
+            joined: this.joined
         };
     }
 }

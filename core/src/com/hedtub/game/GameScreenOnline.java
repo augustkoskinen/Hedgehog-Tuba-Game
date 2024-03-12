@@ -18,6 +18,7 @@ public class GameScreenOnline implements Screen {
     private OnlineManager manager;
     private MainMenuScreen game;
     private OnlineManager.Player player;
+
     private SpriteBatch batch;
     private Texture background;
     private Texture blackpix;
@@ -150,6 +151,12 @@ public class GameScreenOnline implements Screen {
 
         //ui
         manager.batch.begin();
+
+        if(manager.dmgcount>0) {
+            manager.dmgcount--;
+            manager.dmgscreen.draw(manager.batch,manager.dmgcount);
+        }
+
         if(manager.gamestarted)
             if(manager.PlayerList.contains(manager.mainplayer)) {
                 manager.batch.draw(manager.healthback,16*manager.CHANGE_RATIO,manager.WIND_HEIGHT-16-64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO,64*manager.CHANGE_RATIO);

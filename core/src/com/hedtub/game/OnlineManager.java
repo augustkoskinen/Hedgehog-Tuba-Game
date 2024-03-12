@@ -1,11 +1,9 @@
 package com.hedtub.game;
 
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.controllers.Controller;
@@ -52,6 +50,9 @@ public class OnlineManager implements Screen {
 	public FrameworkMO.AnimationSet startanim;
 
 	//player
+	ControllerManager connectedController;
+	public static float dmgcount = 0;
+	public Sprite dmgscreen;
 	public Player mainplayer;
 	public static final float GRAVITY = 0.25f*MULT_AMOUNT;
 	public static final float WALK_SPEED = 2*MULT_AMOUNT;
@@ -74,8 +75,11 @@ public class OnlineManager implements Screen {
 		PoofCloudList = new ArrayList<>();
 		BulletList = new ArrayList<>();
 
+		connectedController = new ControllerManager();
+
 		batch = new SpriteBatch();
 
+		dmgscreen = new Sprite(new Texture("dmgscreen.png"));
 		openbattle = new FrameworkMO.AnimationSet("openbattle.png",36,1,0.025f);
 		startanim = new FrameworkMO.AnimationSet("countdown.png",3,1,1f);
 		healthback = new Texture("healthback.png");
@@ -302,7 +306,8 @@ public class OnlineManager implements Screen {
 		public float horzmove;
 		public int movedir = 1;
 		public float lastdir = 1;
-		public boolean mainplayer = false;
+		public boolean ismainplayer = false;
+		public boolean joined = false;
 		public int jumpcount = 5;
 		public int jumpdir = 0;
 		public double moverot = 0;
@@ -323,21 +328,22 @@ public class OnlineManager implements Screen {
 		public float deadcount = 0;
 		public String socketid;
 
-		public Player(Vector3 pos, int type, String socketid, boolean mainplayer) {
+		public Player(Vector3 pos, int type, String socketid, boolean ismainplayer) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
 			movevect = new Vector3();
 			this.socketid = socketid;
 			controltype = type;
-			this.mainplayer = mainplayer;
+			this.ismainplayer = ismainplayer;
+			this.joined = ismainplayer;
 
 			if(Controllers.getControllers().size==0&&type!=-1) controltype = 0;
 			if(controltype==1) {
 				controller = Controllers.getControllers().get(0);
 			}
 		}
-		public Player(Vector3 pos, int type, Controller controller, int skintype, ArrayList<Integer> colors, String socketid, boolean mainplayer) {
+		public Player(Vector3 pos, int type, Controller controller, int skintype, ArrayList<Integer> colors, String socketid, boolean ismainplayer) {
 			sprite = new FrameworkMO.SpriteObjectSqr("hedtubr.png",pos.x,pos.y,24,24,0,0,true);
 			animrw = new FrameworkMO.AnimationSet("hedtubwr.png",4,1,0.2f);
 			animlw = new FrameworkMO.AnimationSet("hedtubwl.png",4,1,0.2f);
@@ -353,7 +359,8 @@ public class OnlineManager implements Screen {
 				this.skintype = i;
 			}
 
-			this.mainplayer = mainplayer;
+			this.ismainplayer = ismainplayer;
+			this.joined = ismainplayer;
 			colors.add(this.skintype);
 
 			if(Controllers.getControllers().size==0) controltype = 0;
@@ -467,14 +474,14 @@ public class OnlineManager implements Screen {
 						}
 						movevect.y = Math.min(movevect.y, 5*MULT_AMOUNT);
 
-						if(mainplayer)
+						if(ismainplayer)
 							lastdir = degree;
 					}
 				} else {
 					if (wallsliding) movevect.y = -1*MULT_AMOUNT;
 				}
 
-				if (MovementMath.toDegrees(controller) != -1 && mainplayer) lastdir = MovementMath.toDegrees(controller);
+				if (MovementMath.toDegrees(controller) != -1 && ismainplayer) lastdir = MovementMath.toDegrees(controller);
 
 				if ((controltype == 0||controller==null ? Gdx.input.isKeyJustPressed(Input.Keys.G) : firebutton)) {
 					BulletList.add(new Bullet(lastdir + 180, new Vector3(sprite.x + 4, sprite.y + 4, 0), "p" + skintype + "bullet.png", this));
@@ -534,7 +541,7 @@ public class OnlineManager implements Screen {
 
 		public FrameworkMO.TextureSet getEyeText() {
 			Vector3 addpos;
-			if(mainplayer)
+			if(ismainplayer)
 				addpos = MovementMath.lengthDir((float)Math.toRadians(lastdir+90),1.8f);
 			else
 				addpos = MovementMath.lengthDir((float)Math.toRadians((float)Math.toDegrees(lastdir)),1.8f);
@@ -542,7 +549,7 @@ public class OnlineManager implements Screen {
 			float xpos = sprite.collision.x +addpos.x;
 			float ypos = sprite.collision.y-0.5f+addpos.y;
 
-			if(mainplayer)
+			if(ismainplayer)
 				return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians(lastdir+90));
 			else
 				return new FrameworkMO.TextureSet(new TextureRegion(new Texture("eyes.png")),xpos,ypos,10000,(float)Math.toRadians((float)Math.toDegrees(lastdir)));
@@ -582,7 +589,9 @@ public class OnlineManager implements Screen {
 		}
 		public void takeDamage(){
 			health--;
-			addShake(0.3f);
+			dmgcount = .5f;
+			if(ismainplayer)
+				addShake(0.6f);
 			healthwheel.incrementTime();
 			if(health<=0) {
 				PlayerList.remove(this);
@@ -618,7 +627,7 @@ public class OnlineManager implements Screen {
 		//localhost: ws://localhost:8090
 		//graham server: wss://hegog.frc.autos
 
-		WebSocket holdsocket = WebSockets.newSocket("wss://hegog.frc.autos");
+		WebSocket holdsocket = WebSockets.newSocket("ws://localhost:8090");
 		holdsocket.setSendGracefully(true);
 		holdsocket.addListener(new WebSocketListener() {
 			@Override
@@ -645,16 +654,19 @@ public class OnlineManager implements Screen {
 					id = data.get("id").isString().stringValue();
 					JSONArray playerarray = data.get("playerlist").isArray();
 					for(int i = 0; i<playerarray.size();i++) {
-						Player newplayer = new OnlineManager.Player(
-							new Vector3((float)(playerarray.get(i).isObject().get("x").isNumber().doubleValue()),(float)(playerarray.get(i).isObject().get("y").isNumber().doubleValue()),0),
-							-1,
-							playerarray.get(i).isObject().get("id").isString().stringValue(),
-							false
-						);
-						PlayerList.add(newplayer);
-						newplayer.ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
-						PlayerList.get(PlayerList.size()-1).skintype = (int)(playerarray.get(i).isObject().get("skin").isNumber().doubleValue());
-						PlayerList.get(PlayerList.size()-1).ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
+						if(!playerarray.get(i).isObject().get("ingame").isBoolean().booleanValue()) {
+							Player newplayer = new OnlineManager.Player(
+								new Vector3((float) (playerarray.get(i).isObject().get("x").isNumber().doubleValue()), (float) (playerarray.get(i).isObject().get("y").isNumber().doubleValue()), 0),
+								-1,
+								playerarray.get(i).isObject().get("id").isString().stringValue(),
+								false
+							);
+							PlayerList.add(newplayer);
+							newplayer.ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
+							PlayerList.get(PlayerList.size() - 1).skintype = (int) (playerarray.get(i).isObject().get("skin").isNumber().doubleValue());
+							PlayerList.get(PlayerList.size() - 1).ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
+							PlayerList.get(PlayerList.size() - 1).joined = (playerarray.get(i).isObject().get("joined").isBoolean().booleanValue());
+						}
 					}
 				}
 
@@ -667,6 +679,7 @@ public class OnlineManager implements Screen {
 					);
 					PlayerList.add(newplayer);
 					newplayer.ready = (data.get("player").isObject().get("ready").isBoolean().booleanValue());
+					newplayer.joined = (data.get("player").isObject().get("joined").isBoolean().booleanValue());
 				}
 
 				if (event.equals("startGame")) {
@@ -685,6 +698,13 @@ public class OnlineManager implements Screen {
 					if(!targetplayer.ready&&data.get("ready").isBoolean().booleanValue())
 						addShake(.4f);
 					targetplayer.ready = data.get("ready").isBoolean().booleanValue();
+				}
+
+				if (event.equals("updateOtherJoined")) {
+					Player targetplayer = PlayerList.get(findPlayer(data.get("id").isString().stringValue()));
+					if(!targetplayer.joined&&data.get("joined").isBoolean().booleanValue())
+						addShake(.4f);
+					targetplayer.joined = data.get("joined").isBoolean().booleanValue();
 				}
 
 				if (event.equals("updateOtherPos")) {
