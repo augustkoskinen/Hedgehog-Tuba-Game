@@ -73,6 +73,11 @@ public class ChooseScreenOnline implements Screen {
 
     @Override
     public void render(float delta) {
+        if(Controllers.getControllers().size>0){
+            manager.mainplayer = new OnlineManager.Player(new Vector3(),1,Controllers.getControllers().get(0),1,chosencolors,manager.socket.toString(),true);
+            manager.PlayerList.add(manager.mainplayer);
+            manager.addShake(.4f);
+        }
         if(manager.serverready)
             loading = true;
         //clears screen

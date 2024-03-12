@@ -628,7 +628,7 @@ public class OfflineManager implements Screen {
 				DeletedPlayerList.add(this);
 				numplayers--;
 				addShake(0.6f);
-				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-12,sprite.y-12,0),1));
+				PoofCloudList.add(new PoofCloud(0,new Vector3(sprite.x-16,sprite.y-16,0),1));
 			}
 		}
 		public void countDead(){

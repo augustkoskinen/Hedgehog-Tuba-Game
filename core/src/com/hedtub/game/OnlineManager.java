@@ -363,7 +363,6 @@ public class OnlineManager implements Screen {
 		}
 		public TextureRegion updatePlayerPos(){
 			TextureRegion playertext = null;
-			System.out.println(controltype);
 			int rightmove = (controltype==0 ||controller==null? Gdx.input.isKeyPressed(Input.Keys.D) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d > .25) ? 1 : 0;
 			int leftmove = (controltype==0 ||controller==null? Gdx.input.isKeyPressed(Input.Keys.A) : (double) Math.round((controller.getAxis(controller.getMapping().axisLeftX)) * 100d) / 100d < -.25) ? 1 : 0;
 			int netmove = (rightmove-leftmove);
@@ -638,7 +637,7 @@ public class OnlineManager implements Screen {
 			public boolean onMessage(WebSocket webSocket, String packet) {
 				JSONObject data = JSONParser.parse(packet).isObject();
 				String event = data.get("event").isString().stringValue();
-				Gdx.app.log("Log", "Packet Message: " + data);
+				//Gdx.app.log("Log", "Packet Message: " + data);
 
 				if (event.equals("setWS")) {
 					seed = new Random((long)data.get("seed").isNumber().doubleValue());
@@ -646,25 +645,28 @@ public class OnlineManager implements Screen {
 					id = data.get("id").isString().stringValue();
 					JSONArray playerarray = data.get("playerlist").isArray();
 					for(int i = 0; i<playerarray.size();i++) {
-						System.out.println(playerarray);
-						PlayerList.add(new OnlineManager.Player(
+						Player newplayer = new OnlineManager.Player(
 							new Vector3((float)(playerarray.get(i).isObject().get("x").isNumber().doubleValue()),(float)(playerarray.get(i).isObject().get("y").isNumber().doubleValue()),0),
 							-1,
 							playerarray.get(i).isObject().get("id").isString().stringValue(),
 							false
-						));
+						);
+						PlayerList.add(newplayer);
+						newplayer.ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
 						PlayerList.get(PlayerList.size()-1).skintype = (int)(playerarray.get(i).isObject().get("skin").isNumber().doubleValue());
 						PlayerList.get(PlayerList.size()-1).ready = (playerarray.get(i).isObject().get("ready").isBoolean().booleanValue());
 					}
 				}
 
 				if (event.equals("joinPlayer")) {
-					PlayerList.add(new OnlineManager.Player(
+					Player newplayer = new OnlineManager.Player(
 						new Vector3((float)(data.get("player").isObject().get("x").isNumber().doubleValue()),(float)(data.get("player").isObject().get("y").isNumber().doubleValue()),0),
 						-1,
 						data.get("player").isObject().get("id").isString().stringValue(),
 						false
-					));
+					);
+					PlayerList.add(newplayer);
+					newplayer.ready = (data.get("player").isObject().get("ready").isBoolean().booleanValue());
 				}
 
 				if (event.equals("startGame")) {
