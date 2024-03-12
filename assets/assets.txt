@@ -36,6 +36,7 @@ i:p2h.png:p2h-5eeba72710293fefbf8e878d64e5fbc7.png:1261:image/png:1
 i:blackpix.png:blackpix-4eaab46a0fe93084ed01dc3731697f45.png:83:image/png:1
 i:onbutton.png:onbutton-51ab3cf9cc84ff73dd9ca656010170c6.png:380:image/png:1
 i:keyboard.png:keyboard-78432145ea42675f6017f82112c5a2c6.png:272:image/png:1
+i:pghost.png:pghost-9a81a1bebd795eb4a6a00ae2c635fd10.png:921:image/png:1
 i:offbutton.png:offbutton-2abee0411da3ad91dd6b7cbc039fbcd4.png:327:image/png:1
 i:p3body.png:p3body-3d7aee11138490ccff72955f39cbe730.png:171:image/png:1
 i:p1h.png:p1h-c93f1e76fbc0a6ffb78128dc59844c95.png:1260:image/png:1
@@ -57,6 +58,7 @@ i:p3.png:p3-459fc73588e8b05f1362a7e315781e25.png:890:image/png:1
 i:p5h.png:p5h-321e568d99302591a9cf262f9a67f86f.png:1261:image/png:1
 i:hedtubwl.png:hedtubwl-d411063bcc7c8db7c608cb44d26aafd1.png:929:image/png:1
 i:offbuttonhover.png:offbuttonhover-d52e6b6a6f856d3a22fb1b155bb34ee8.png:326:image/png:1
+i:dmgscreen.png:dmgscreen-3277b32686aa5069e85932f64b04a5c4.png:3219:image/png:1
 i:hedtubr.png:hedtubr-ba90f6efa4c52c77e5f2107fd50aa8ea.png:579:image/png:1
 i:chose.png:chose-40d60083a218ed64d812bebd286820c6.png:736:image/png:1
 t:com/badlogic/gdx/graphics/g3d/particles/particles.fragment.glsl:particles.fragment-b90524761fdf09b0a836056d590c30b8.glsl:820:application/unknown:1
