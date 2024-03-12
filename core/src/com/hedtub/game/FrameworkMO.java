@@ -255,10 +255,8 @@ public class FrameworkMO {
         return null;
     }
 
-    public static int[][] getMap(Random seed) {
-        int rand = seed.nextInt(2);
-
-        switch(rand) {
+    public static int[][] getMap(int num) {
+        switch(num) {
             case 0 : {
                 return new int[][] {
                     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},

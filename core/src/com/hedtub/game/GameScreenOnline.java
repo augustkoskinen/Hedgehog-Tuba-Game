@@ -32,10 +32,10 @@ public class GameScreenOnline implements Screen {
 
             float addx = 160;
             float addy = 80;
-            if(manager.seed.nextInt(2)*2==0) {
+            if((int)(Math.random()*2)*2==0) {
                 addx = manager.WORLD_WIDTH*manager.TILE_WIDTH - 160;
             }
-            if(manager.seed.nextInt(2)*2==0) {
+            if((int)(Math.random()*2)*2==0) {
                 addy = manager.WORLD_HEIGHT*manager.TILE_WIDTH - 80;
             }
             manager.PlayerList.get(i).sprite.setPosition(addx,addy);
@@ -152,8 +152,8 @@ public class GameScreenOnline implements Screen {
         //ui
         manager.batch.begin();
 
+        manager.dmgcount-=Gdx.graphics.getDeltaTime()*3;
         if(manager.dmgcount>0) {
-            manager.dmgcount--;
             manager.dmgscreen.draw(manager.batch,manager.dmgcount);
         }
 

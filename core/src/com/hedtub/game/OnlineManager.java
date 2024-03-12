@@ -54,6 +54,8 @@ public class OnlineManager implements Screen {
 	public static float dmgcount = 0;
 	public Sprite dmgscreen;
 	public Player mainplayer;
+	public boolean jumpkeypressed = false;
+	public boolean firekeypressed = false;
 	public static final float GRAVITY = 0.25f*MULT_AMOUNT;
 	public static final float WALK_SPEED = 2*MULT_AMOUNT;
 	public static final float JUMP_SPEED = 5.2f*MULT_AMOUNT;
@@ -62,7 +64,6 @@ public class OnlineManager implements Screen {
 	public static ArrayList<Bullet> BulletList;
 	public static ArrayList<Player> PlayerList = new ArrayList<>();
 	public static ArrayList<Player> DeletedPlayerList = new ArrayList<>();
-	public static Random seed;
 	public static boolean pause = true;
 	public static boolean shake = false;
 	public static boolean serverready = false;
@@ -79,7 +80,6 @@ public class OnlineManager implements Screen {
 
 		batch = new SpriteBatch();
 
-		dmgscreen = new Sprite(new Texture("dmgscreen.png"));
 		openbattle = new FrameworkMO.AnimationSet("openbattle.png",36,1,0.025f);
 		startanim = new FrameworkMO.AnimationSet("countdown.png",3,1,1f);
 		healthback = new Texture("healthback.png");
@@ -89,6 +89,8 @@ public class OnlineManager implements Screen {
 			WIND_HEIGHT = Gdx.graphics.getHeight();
 			CHANGE_RATIO = Gdx.graphics.getWidth()/1024f;
 		}
+
+		dmgscreen = new Sprite(new TextureRegion(new Texture("dmgscreen.png"),(int)WIND_WIDTH,(int)WIND_HEIGHT));
 
 		socket = configSocket();
 	}
@@ -125,7 +127,7 @@ public class OnlineManager implements Screen {
 		}
 
 		if(shake)
-			loadjiggle = new Vector3((shaketime*2)*(seed.nextInt(2)==0 ? 1f : -1f),(shaketime*2)*(seed.nextInt(2)==0 ? 1f : -1f),0);
+			loadjiggle = new Vector3((shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),(shaketime*2)*((int)(Math.random()*2)==0 ? 1f : -1f),0);
 
 		if(shaketime>0) shaketime-=Gdx.graphics.getDeltaTime();
 		else {shaketime = .7f; shake = false; loadjiggle = new Vector3();}
@@ -589,9 +591,10 @@ public class OnlineManager implements Screen {
 		}
 		public void takeDamage(){
 			health--;
-			dmgcount = .5f;
-			if(ismainplayer)
+			if(ismainplayer) {
 				addShake(0.6f);
+				dmgcount = .5f;
+			}
 			healthwheel.incrementTime();
 			if(health<=0) {
 				PlayerList.remove(this);
@@ -612,10 +615,10 @@ public class OnlineManager implements Screen {
 
 				float addx = 160;
 				float addy = 80;
-				if(seed.nextInt(2)==0) {
+				if((int)(Math.random()*2)==0) {
 					addx = WORLD_WIDTH*TILE_WIDTH - 160;
 				}
-				if(seed.nextInt(2)==0) {
+				if((int)(Math.random()*2)==0) {
 					addy = WORLD_HEIGHT*TILE_WIDTH - 80;
 				}
 				sprite.setPosition(addx,addy);
@@ -649,8 +652,6 @@ public class OnlineManager implements Screen {
 				//Gdx.app.log("Log", "Packet Message: " + data);
 
 				if (event.equals("setWS")) {
-					seed = new Random((long)data.get("seed").isNumber().doubleValue());
-					WORLD_MAP = FrameworkMO.getMap(seed);
 					id = data.get("id").isString().stringValue();
 					JSONArray playerarray = data.get("playerlist").isArray();
 					for(int i = 0; i<playerarray.size();i++) {
@@ -683,6 +684,7 @@ public class OnlineManager implements Screen {
 				}
 
 				if (event.equals("startGame")) {
+					WORLD_MAP = FrameworkMO.getMap((int)(data.get("maptype").isNumber().doubleValue()));
 					addShake(.4f);
 					if(PlayerList.size()>0)
 						serverready = true;

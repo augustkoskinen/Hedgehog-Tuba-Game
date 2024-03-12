@@ -11,6 +11,7 @@ console.log("Server is running...")
 
 //setting events
 wss.on('connection', function connection(ws) {
+    if(playerlist<1) startedgame = false;
     console.log("Player Connected!");
     ws.on('error', console.error);
     const player = new Player(ws, 0, 0);
@@ -20,7 +21,6 @@ wss.on('connection', function connection(ws) {
     ws.send(JSON.stringify({
         event: 'setWS',
         id : id,
-        seed: seed,
         playerlist : getSendable(playerlist)
     }));
 
@@ -46,9 +46,11 @@ wss.on('connection', function connection(ws) {
                         start = false;
 
                 if(start&&!startedgame) {
+                    let maptype = Math.floor(Math.random() * 2);
                     for(let i = 0; i < playerlist.length; i++) {
                         playerlist[i].ws.send(JSON.stringify({
-                            event: 'startGame'
+                            event: 'startGame',
+                            maptype: maptype
                         }));
                         playerlist[i].ingame = true;
                         startedgame = true;

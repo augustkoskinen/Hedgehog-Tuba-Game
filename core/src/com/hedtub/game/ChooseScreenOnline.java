@@ -65,6 +65,9 @@ public class ChooseScreenOnline implements Screen {
 
     @Override
     public void render(float delta) {
+        manager.jumpkeypressed = Gdx.input.isKeyJustPressed(Input.Keys.F);
+        manager.firekeypressed = Gdx.input.isKeyJustPressed(Input.Keys.G);
+
         if (manager.mainplayer == null) {
             for (int i = 0; i < Controllers.getControllers().size; i++) {
                 Controller controller = Controllers.getControllers().get(i);
@@ -79,10 +82,12 @@ public class ChooseScreenOnline implements Screen {
                     break;
                 }
             }
-            if (Gdx.input.isKeyPressed(Input.Keys.F) && Gdx.input.isKeyPressed(Input.Keys.G)) {
+            if (manager.jumpkeypressed&&manager.firekeypressed) {
                 manager.mainplayer = new OnlineManager.Player(new Vector3(), 0, manager.socket.toString(), true);
                 manager.PlayerList.add(0,manager.mainplayer);
                 manager.addShake(.4f);
+                manager.firekeypressed = false;
+                manager.jumpkeypressed = false;
 
                 JSONObject senddata = new JSONObject();
                 senddata.put("event", new JSONString("joinedPlayer"));
@@ -143,7 +148,8 @@ public class ChooseScreenOnline implements Screen {
                 if(manager.PlayerList.get(i).controltype==0) {
                     batch.draw(keyboard,cam.viewportWidth/2+6+manager.loadjiggle.x+33*(i+(manager.mainplayer == null ? 1 : 0)),cam.viewportHeight/2+manager.loadjiggle.y,24,24);
 
-                    if(Gdx.input.isKeyJustPressed(Input.Keys.F)&&i==0) {
+                    if(manager.jumpkeypressed&&i==0) {
+                        manager.jumpkeypressed = false;
                         if(manager.PlayerList.get(i).ready) pressedstart = true;
                         else {
                             manager.PlayerList.get(i).ready = true;
@@ -154,7 +160,8 @@ public class ChooseScreenOnline implements Screen {
                             manager.socket.send(JsonUtils.stringify(senddata.getJavaScriptObject()));
                         }
                     }
-                    if(Gdx.input.isKeyJustPressed(Input.Keys.G)&&i==0) {
+                    if(manager.firekeypressed&&i==0) {
+                        manager.firekeypressed = false;
                         manager.PlayerList.get(i).ready = false;
 
                         JSONObject senddata = new JSONObject();
